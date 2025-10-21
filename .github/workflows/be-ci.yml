@@ -1,0 +1,101 @@
+name: be-ci
+
+on:
+  pull_request:
+    paths:
+      - "**"
+      - ".github/workflows/be-ci.yml"
+  push:
+    branches: ["dev", "feat/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: be-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20        # ← 무한 대기 방지
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false  # ← 드래프트 PR 스킵
+    env:
+      CI: true
+      SPRING_PROFILES_ACTIVE: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # gradle wrapper 보안 검증
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      # Gradle 실행 JVM(JDK 24)
+      - name: Setup Java (Gradle JVM = 24)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "24"
+          cache: gradle
+
+      # 코드 toolchain용 JDK 25 미리 설치 (Gradle이 재다운로드 안 하도록)
+      - name: Provision Java 25 for toolchain
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+          cache-read-only: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork }}  # ← 포크 PR 캐시 권한 회피
+
+      - name: Make gradlew executable (Linux)
+        run: chmod +x ./gradlew
+
+      - name: Print versions
+        run: |
+          ./gradlew --version
+          java -version
+
+      # 테스트 + 커버리지
+      - name: Run tests (JUnit5) with coverage
+        run: ./gradlew clean test jacocoTestReport --info --stacktrace --no-daemon
+
+      # 빌드(테스트/커버리지 재실행 방지)
+      - name: Assemble (no tests)
+        run: ./gradlew assemble -x test -x jacocoTestReport --no-daemon
+
+      # 테스트 결과 업로드 (없으면 무시)
+      - name: Upload test results (JUnit XML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-results
+          path: build/test-results/test
+          if-no-files-found: ignore
+          retention-days: 3      # ← 보관 3일
+
+      # 테스트 HTML 리포트도 같이
+      - name: Upload test report (HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report-html
+          path: build/reports/tests/test
+          if-no-files-found: ignore
+
+      # 커버리지 리포트 업로드 (없으면 무시)
+      - name: Upload coverage report (JaCoCo HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: build/reports/jacoco/test/html
+          if-no-files-found: ignore
+          retention-days: 3
