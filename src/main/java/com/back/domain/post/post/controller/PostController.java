@@ -19,7 +19,6 @@ public class PostController {
 
     @PostMapping
     public RsData<Void> createPost(@Valid @RequestBody PostCreateReqBody reqBody) {
-        // Post creation logic would go here
 
         return RsData.success("Post created successfully.");
     }
