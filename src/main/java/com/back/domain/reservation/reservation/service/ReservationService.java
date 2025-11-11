@@ -3,7 +3,7 @@ package com.back.domain.reservation.reservation.service;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.reservation.reservation.common.ReservationStatus;
 import com.back.domain.reservation.reservation.dto.CreateReservationReqBody;
-import com.back.domain.reservation.reservation.dto.ReservationSummaryDto;
+import com.back.domain.reservation.reservation.dto.GuestReservationSummaryDto;
 import com.back.domain.reservation.reservation.entity.Reservation;
 import com.back.domain.reservation.reservation.repository.ReservationRepository;
 import com.back.standard.util.page.PagePayload;
@@ -64,7 +64,7 @@ public class ReservationService {
 //        }
 //    }
 
-    public PagePayload<ReservationSummaryDto> getSentReservations(Member author, Pageable pageable, ReservationStatus status, String keyword) {
+    public PagePayload<GuestReservationSummaryDto> getSentReservations(Member author, Pageable pageable, ReservationStatus status, String keyword) {
         // TODO: post의 제목을 keyword로 검색하도록 수정 필요
         // TODO: QueryDsl로 변경 예정
         Page<Reservation> reservationPage;
@@ -74,7 +74,7 @@ public class ReservationService {
             reservationPage = reservationRepository.findByAuthorAndStatus(author, status, pageable);
         }
 
-        Page<ReservationSummaryDto> reservationSummaryDtoPage = reservationPage.map(ReservationSummaryDto::new);
+        Page<GuestReservationSummaryDto> reservationSummaryDtoPage = reservationPage.map(GuestReservationSummaryDto::new);
 
         return PageUt.of(reservationSummaryDtoPage);
     }
@@ -93,8 +93,14 @@ public class ReservationService {
 //            reservationPage = reservationRepository.findByPostAndStatus(post, status, pageable);
 //        }
 //
-//        Page<ReservationSummaryDto> reservationSummaryDtoPage = reservationPage.map(ReservationSummaryDto::new);
+//        Page<HostReservationSummaryDto> reservationSummaryDtoPage = reservationPage.map(HostReservationSummaryDto::new);
 //
 //        return PageUt.of(reservationSummaryDtoPage);
 //    }
+
+    public Reservation getById(Long reservationId) {
+        return reservationRepository.findById(reservationId).orElseThrow(
+                () -> new IllegalArgumentException("해당 예약을 찾을 수 없습니다. id=" + reservationId)
+        );
+    }
 }
