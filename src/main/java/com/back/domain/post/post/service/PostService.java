@@ -39,6 +39,7 @@ public class PostService {
                 .deposit(reqBody.deposit())
                 .fee(reqBody.fee())
                 .author(author)
+                .isBanned(false)
                 .build();
 
         if (reqBody.options() != null && !reqBody.options().isEmpty()) {
@@ -66,5 +67,9 @@ public class PostService {
         postRepository.save(post);
 
         return RsData.success("게시글이 등록되었습니다.");
+    }
+
+    public Post getById(Long id) {
+        return postRepository.findById(id).orElseThrow(() -> new ServiceException("404-2", "존재하지 않는 게시글입니다."));
     }
 }

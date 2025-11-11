@@ -1,6 +1,7 @@
 package com.back.domain.reservation.reservation.entity;
 
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.post.post.entity.Post;
 import com.back.domain.reservation.reservation.common.ReservationDeliveryMethod;
 import com.back.domain.reservation.reservation.common.ReservationStatus;
 import com.back.global.jpa.entity.BaseEntity;
@@ -38,7 +39,9 @@ public class Reservation extends BaseEntity {
     private LocalDate reservationStartAt;
     private LocalDate reservationEndAt;
 
-    // TODO: 게시글 연결 필요
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id")
+    private Post post;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id")

@@ -22,7 +22,8 @@ public record CreateReservationReqBody(
         LocalDate reservationStartAt,
         @NotNull
         @Future
-        LocalDate reservationEndAt
-        // TODO: 게시글 ID 추가 예정
+        LocalDate reservationEndAt,
+        @NotNull
+        Long postId
 ) {
 }
