@@ -1,6 +1,7 @@
 package com.back.domain.reservation.reservation.repository;
 
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.post.post.entity.Post;
 import com.back.domain.reservation.reservation.common.ReservationStatus;
 import com.back.domain.reservation.reservation.entity.Reservation;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     Page<Reservation> findByAuthor(Member author, Pageable pageable);
     Page<Reservation> findByAuthorAndStatus(Member author, ReservationStatus status, Pageable pageable);
 
-//    Page<Reservation> findByAuthorAndPost(Post post, Pageable pageable);
-//    Page<Reservation> findByAuthorAndPostAndStatus(Post post, ReservationStatus status, Pageable pageable);
+    Page<Reservation> findByPost(Post post, Pageable pageable);
+    Page<Reservation> findByPostAndStatus(Post post, ReservationStatus status, Pageable pageable);
 }

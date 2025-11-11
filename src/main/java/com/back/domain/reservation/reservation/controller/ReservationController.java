@@ -5,6 +5,7 @@ import com.back.domain.member.member.service.MemberService;
 import com.back.domain.reservation.reservation.common.ReservationStatus;
 import com.back.domain.reservation.reservation.dto.CreateReservationReqBody;
 import com.back.domain.reservation.reservation.dto.GuestReservationSummaryResBody;
+import com.back.domain.reservation.reservation.dto.HostReservationSummaryResBody;
 import com.back.domain.reservation.reservation.dto.ReservationDto;
 import com.back.domain.reservation.reservation.entity.Reservation;
 import com.back.domain.reservation.reservation.service.ReservationService;
@@ -26,7 +27,6 @@ import org.springframework.web.bind.annotation.*;
 public class ReservationController {
     private final ReservationService reservationService;
     private final MemberService memberService;
-//    private final PostService postService;
 
     @Transactional
     @PostMapping
@@ -56,27 +56,26 @@ public class ReservationController {
         return ResponseEntity.ok(reservations);
     }
 
-//    @Transactional(readOnly = true)
-//    @GetMapping("/received/{postId}")
-//    public ResponseEntity<PagePayload<HostReservationSummaryResBody>> getReceivedReservations(
-//            @AuthenticationPrincipal SecurityUser securityUser,
-//            @PathVariable Long postId,
-//            @PageableDefault(size = 5, page = 0)Pageable pageable,
-//            @RequestParam(required = false) ReservationStatus status,
-//            @RequestParam(required = false) String keyword
-//    ) {
-//        Member author = memberService.getById(securityUser.getId());
-//        Post post = postService.getById(postId);
-//        PagePayload<HostReservationSummaryResBody> reservations = reservationService.getReceivedReservations(post, author, pageable, status, keyword);
-//
-//        return ResponseEntity.ok(reservations);
-//    }
+    @Transactional(readOnly = true)
+    @GetMapping("/received/{postId}")
+    public ResponseEntity<PagePayload<HostReservationSummaryResBody>> getReceivedReservations(
+            @AuthenticationPrincipal SecurityUser securityUser,
+            @PathVariable Long postId,
+            @PageableDefault(size = 5, page = 0)Pageable pageable,
+            @RequestParam(required = false) ReservationStatus status,
+            @RequestParam(required = false) String keyword
+    ) {
+        Member author = memberService.getById(securityUser.getId());
+        PagePayload<HostReservationSummaryResBody> reservations = reservationService.getReceivedReservations(postId, author, pageable, status, keyword);
+
+        return ResponseEntity.ok(reservations);
+    }
 
     @Transactional(readOnly = true)
     @GetMapping("/{reservationId}")
     public ResponseEntity<ReservationDto> getReservationDetail(@PathVariable Long reservationId) {
         // TODO: logs 정보 가져오기 (service 에서 ReservationDto를 만들어 오는 방식 고려)
-        Reservation reservation = reservationService.getById(reservationId);
-        return ResponseEntity.ok(new ReservationDto(reservation));
+        ReservationDto reservationDto = reservationService.getReservationDtoById(reservationId);
+        return ResponseEntity.ok(reservationDto);
     }
 }

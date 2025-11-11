@@ -8,8 +8,7 @@ import com.back.domain.post.post.entity.PostOption;
 import com.back.domain.post.post.service.PostService;
 import com.back.domain.reservation.reservation.common.ReservationDeliveryMethod;
 import com.back.domain.reservation.reservation.common.ReservationStatus;
-import com.back.domain.reservation.reservation.dto.CreateReservationReqBody;
-import com.back.domain.reservation.reservation.dto.GuestReservationSummaryResBody;
+import com.back.domain.reservation.reservation.dto.*;
 import com.back.domain.reservation.reservation.entity.Reservation;
 import com.back.domain.reservation.reservation.entity.ReservationOption;
 import com.back.domain.reservation.reservation.repository.ReservationRepository;
@@ -22,7 +21,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -106,7 +107,7 @@ public class ReservationService {
     }
 
     private void validateDeliveryMethods(Post post, CreateReservationReqBody reqBody) {
-        // 1. 수령 방식 (Receive Method) 검증
+        // 수령 방식 (Receive Method) 검증
         if (!isReceiveMethodAllowed(post.getReceiveMethod(), reqBody.receiveMethod())) {
             throw new ServiceException(
                     "400-3",
@@ -114,7 +115,7 @@ public class ReservationService {
             );
         }
 
-        // 2. 반납 방식 (Return Method) 검증
+        // 반납 방식 (Return Method) 검증
         if (!isReturnMethodAllowed(post.getReturnMethod(), reqBody.returnMethod())) {
             throw new ServiceException(
                     "400-4",
@@ -146,15 +147,15 @@ public class ReservationService {
             return List.of(); // 옵션이 없으면 빈 리스트 반환
         }
 
-        // 1. 옵션 엔티티들을 조회 (PostService에 위임)
+        // 옵션 엔티티들을 조회 (PostService에 위임)
         List<PostOption> options = postService.getAllOptionsById(optionIds);
 
-        // 2. 유효성 검증: 개수 일치 확인
+        // 유효성 검증: 개수 일치 확인
         if (options.size() != optionIds.size()) {
             throw new ServiceException("400-5", "선택된 옵션 중 유효하지 않은 옵션이 포함되어 있습니다."); // 400-3, 400-4와 충돌되지 않도록 코드 변경
         }
 
-        // 3. 해당 게시글의 옵션인지 검증
+        // 해당 게시글의 옵션인지 검증
         boolean allBelongToPost = options.stream()
                 .allMatch(option -> option.getPost().getId().equals(postId));
 
@@ -175,33 +176,156 @@ public class ReservationService {
             reservationPage = reservationRepository.findByAuthorAndStatus(author, status, pageable);
         }
 
-        Page<GuestReservationSummaryResBody> reservationSummaryDtoPage = reservationPage.map(GuestReservationSummaryResBody::new);
+        // DTO 매핑 및 총 금액 계산 로직 수행
+        Page<GuestReservationSummaryResBody> reservationSummaryDtoPage = reservationPage.map(reservation -> {
+
+            Post post = reservation.getPost();
+            List<ReservationOption> options = reservation.getReservationOptions(); // Lazy Loading 발생 가능
+
+            // 총 금액 계산
+            int totalAmount = calculateTotalAmount(reservation, post, options);
+
+            // PostSummary DTO 생성
+            GuestReservationSummaryResBody.ReservationPostSummaryDto postSummary = createPostSummaryDto(post);
+
+            // Option DTO 리스트 생성 (ReservationOption -> PostOption을 통해 name, id 가져옴)
+            List<OptionDto> optionDtos = options.stream()
+                    .map(ro -> new OptionDto(
+                            ro.getPostOption().getId(),
+                            ro.getPostOption().getName() // PostOption 엔티티에서 가져옴
+                    ))
+                    .collect(Collectors.toList());
+
+            // 최종 DTO 생성
+            return new GuestReservationSummaryResBody(
+                    reservation,
+                    postSummary,
+                    optionDtos,
+                    totalAmount
+            );
+        });
 
         return PageUt.of(reservationSummaryDtoPage);
     }
 
-//    public PagePayload<ReservationSummaryDto> getReceivedReservations(
-//            Post post,
-//            Member author,
-//            Pageable pageable,
-//            ReservationStatus status,
-//            String keyword) {
-//        // TODO: postId로 게시글 조회 후, 해당 게시글의 호스트와 author 비교 필요
-//        Page<Reservation> reservationPage;
-//        if (status == null) {
-//            reservationPage = reservationRepository.findByPost(post, pageable);
-//        } else {
-//            reservationPage = reservationRepository.findByPostAndStatus(post, status, pageable);
-//        }
-//
-//        Page<HostReservationSummaryDto> reservationSummaryDtoPage = reservationPage.map(HostReservationSummaryResBody::new);
-//
-//        return PageUt.of(reservationSummaryDtoPage);
-//    }
+    /**
+     * 예약 총 금액을 계산 (PostOption을 Lazy Loading하여 접근)
+     */
+    private int calculateTotalAmount(Reservation reservation, Post post, List<ReservationOption> options) {
+        // 기간 일수 계산 (시작일과 종료일 포함)
+        long days = ChronoUnit.DAYS.between(reservation.getReservationStartAt(), reservation.getReservationEndAt()) + 1;
 
-    public Reservation getById(Long reservationId) {
-        return reservationRepository.findById(reservationId).orElseThrow(
-                () -> new IllegalArgumentException("해당 예약을 찾을 수 없습니다. id=" + reservationId)
+        // 기본 가격 (Post 엔티티에서 직접 가져옴)
+        int baseDeposit = post.getDeposit();
+        int baseFee = post.getFee();
+
+        // 옵션 가격 합산 (PostOption을 타고 들어가서 조회)
+        int optionDepositSum = options.stream()
+                .mapToInt(ro -> ro.getPostOption().getDeposit())
+                .sum();
+        int optionFeeSum = options.stream()
+                .mapToInt(ro -> ro.getPostOption().getFee())
+                .sum();
+
+        int totalDeposit = baseDeposit + optionDepositSum;
+        int totalDailyFee = baseFee + optionFeeSum;
+
+        // 총 금액 = (총 보증금) + (총 일일 대여료 * 기간)
+        return totalDeposit + (int) (totalDailyFee * days);
+    }
+
+    /**
+     * Post 엔티티를 ReservationPostSummaryDto로 변환
+     */
+    private GuestReservationSummaryResBody.ReservationPostSummaryDto createPostSummaryDto(Post post) {
+        AuthorDto authorDto =
+                new AuthorDto(
+                        post.getAuthor().getId(),
+                        post.getAuthor().getNickname(),
+                        post.getAuthor().getProfileImgUrl()
+                );
+
+        String thumbnailUrl = post.getImages().stream()
+                .filter(img -> img.getIsPrimary() != null && img.getIsPrimary())
+                .findFirst()
+                .map(img -> img.getImageUrl())
+                .orElse(null);
+
+        return new GuestReservationSummaryResBody.ReservationPostSummaryDto(
+                post.getId(),
+                post.getTitle(),
+                thumbnailUrl,
+                authorDto
+        );
+    }
+
+    public PagePayload<HostReservationSummaryResBody> getReceivedReservations(
+            Long postId,
+            Member author,
+            Pageable pageable,
+            ReservationStatus status,
+            String keyword) {
+        // postId로 게시글 조회 후, 해당 게시글의 author와 요청한 author가 일치하는지 확인
+        Post post = postService.getById(postId);
+        if (!post.getAuthor().getId().equals(author.getId())) {
+            throw new ServiceException("403-1", "해당 게시글의 호스트가 아닙니다.");
+        }
+
+        Page<Reservation> reservationPage;
+        if (status == null) {
+            reservationPage = reservationRepository.findByPost(post, pageable);
+        } else {
+            reservationPage = reservationRepository.findByPostAndStatus(post, status, pageable);
+        }
+
+        Page<HostReservationSummaryResBody> reservationSummaryDtoPage = reservationPage.map(reservation -> {
+
+            List<ReservationOption> options = reservation.getReservationOptions(); // Lazy Loading 발생 가능
+
+            // 총 금액 계산 (calculateTotalAmount 재사용)
+            int totalAmount = calculateTotalAmount(reservation, post, options);
+
+            // Option DTO 리스트 생성
+            List<OptionDto> optionDtos = options.stream()
+                    .map(ro -> new OptionDto(
+                            ro.getPostOption().getId(),
+                            ro.getPostOption().getName()
+                    ))
+                    .toList();
+
+            // 최종 DTO 생성 (HostReservationSummaryResBody의 생성자 사용)
+            return new HostReservationSummaryResBody(
+                    reservation,
+                    optionDtos,
+                    totalAmount
+            );
+        });
+
+        return PageUt.of(reservationSummaryDtoPage);
+    }
+
+    public ReservationDto getReservationDtoById(Long reservationId) {
+        Reservation reservation =  reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ServiceException("404-1", "해당 예약을 찾을 수 없습니다."));
+
+        Post post = reservation.getPost();
+        List<ReservationOption> options = reservation.getReservationOptions();
+
+        // 총 금액 계산 및 데이터 준비 (Service 책임)
+        int totalAmount = calculateTotalAmount(reservation, post, options);
+
+        // Option DTO 생성
+        List<OptionDto> optionDtos = options.stream()
+                .map(ro -> new OptionDto(
+                        ro.getPostOption().getId(),
+                        ro.getPostOption().getName()
+                ))
+                .toList();
+
+        return new ReservationDto(
+                reservation,
+                optionDtos,
+                totalAmount
         );
     }
 }
