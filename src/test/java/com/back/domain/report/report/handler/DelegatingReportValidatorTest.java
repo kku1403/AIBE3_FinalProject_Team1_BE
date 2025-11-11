@@ -26,7 +26,16 @@ class DelegatingReportValidatorTest extends IntegrationTestSupport {
 
     @BeforeEach
     void setUp() {
-        member = new Member();
+        member = Member.builder()
+                .email("test@example.com")
+                .password("password123")
+                .name("테스트")
+                .address1("서울시 강남구")  // 필수 필드 추가
+                .address2("테헤란로")      // 선택적 필드
+                .nickname("테스트닉네임")   // 필수 필드 추가
+                .phoneNumber("010-1234-5678") // 필수 필드 추가
+                .build();
+
         em.persist(member);
     }
 

@@ -27,7 +27,16 @@ class ReportServiceTest extends IntegrationTestSupport {
 
     @BeforeEach
     void setUp() {
-        reporter = new Member();
+        reporter = Member.builder()
+                .email("test@example.com")
+                .password("password123")
+                .name("테스트")
+                .address1("서울시 강남구")  // 필수 필드 추가
+                .address2("테헤란로")      // 선택적 필드
+                .nickname("테스트닉네임")   // 필수 필드 추가
+                .phoneNumber("010-1234-5678") // 필수 필드 추가
+                .build();
+        
         em.persist(reporter);
     }
 
@@ -35,8 +44,18 @@ class ReportServiceTest extends IntegrationTestSupport {
     @DisplayName("Type과 TargetId 검증이 통과되면 정상적으로 신고가 등록된다.")
     void postReport_success() {
         //given
-        Member target = new Member();
+        Member target = Member.builder()
+                .email("target@example.com")
+                .password("password123")
+                .name("타겟")
+                .address1("서울시 서초구")
+                .address2("반포대로")
+                .nickname("타겟닉네임")
+                .phoneNumber("010-8765-4321")
+                .build();
+
         em.persist(target);
+
 
         ReportReqBody reportReqBody = new ReportReqBody(ReportType.USER, target.getId(), "홍보 목적 게시글 신고");
         Long reporterId = reporter.getId();
@@ -72,8 +91,18 @@ class ReportServiceTest extends IntegrationTestSupport {
     @DisplayName("신고자가 존재하지 않으면 예외가 발생한다.")
     void postReport_memberNotfoundError() {
         //given
-        Member target = new Member();
+        Member target = Member.builder()
+                .email("target@example.com")
+                .password("password123")
+                .name("타겟")
+                .address1("서울시 서초구")
+                .address2("반포대로")
+                .nickname("타겟닉네임")
+                .phoneNumber("010-8765-4321")
+                .build();
+
         em.persist(target);
+
 
         ReportReqBody reportReqBody = new ReportReqBody(ReportType.USER, target.getId(), "홍보 목적 게시글 신고");
 
