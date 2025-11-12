@@ -3,7 +3,6 @@ package com.back.domain.chat.chat.service;
 import com.back.domain.chat.chat.dto.ChatRoomDto;
 import com.back.domain.chat.chat.dto.CreateChatRoomResBody;
 import com.back.domain.chat.chat.entity.ChatRoom;
-import com.back.domain.chat.chat.repository.ChatMemberRepository;
 import com.back.domain.chat.chat.repository.ChatRoomRepository;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.service.MemberService;
@@ -19,34 +18,34 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class ChatService {
+    // TODO : 주입 계층 통일
     private final MemberService memberService;
     private final PostRepository postRepository;
     private final ChatRoomRepository chatRoomRepository;
-    private final ChatMemberRepository chatMemberRepository;
 
+    @Transactional
     public CreateChatRoomResBody createChatRoom(Long postId, Long memberId) {
 
         Post post = postRepository.findById(postId).orElseThrow(() -> new ServiceException("404-1", "존재하지 않는 게시글입니다."));
-
         Member host = post.getAuthor();
-        Member guest = memberService.getById(memberId);
 
-        if(host.getId().equals(guest.getId())) {
+        if (host.getId().equals(memberId)) {
             throw new ServiceException("400-1", "본인과 채팅방을 만들 수 없습니다.");
         }
 
-        Optional<ChatRoom> existingRoom = chatRoomRepository.findByPostAndMembers(postId, host.getId(), guest.getId());
+        Optional<Long> existingRoom = chatRoomRepository.findIdByPostAndMembers(postId, host.getId(), memberId);
         if (existingRoom.isPresent()) {
-            ChatRoom room = existingRoom.get();
-            return new CreateChatRoomResBody("이미 존재하는 채팅방입니다.", room.getId());
+            Long roomId = existingRoom.get();
+            return new CreateChatRoomResBody("이미 존재하는 채팅방입니다.", roomId);
         }
 
         ChatRoom chatRoom = ChatRoom.builder()
                 .post(post)
                 .build();
 
+        Member guest = memberService.getById(memberId);
         chatRoom.addMember(host);
         chatRoom.addMember(guest);
 

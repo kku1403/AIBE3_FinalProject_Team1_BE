@@ -41,3 +41,4 @@ db_dev.mv.db
 db_dev.trace.db
 
 .env
+src/main/generated
