@@ -101,8 +101,28 @@ public class PostService {
         return savedPost.getId();
     }
 
-    public PagePayload<PostListResBody> getPostList(Pageable pageable) {
-        Page<Post> postPage = postRepository.findAll(pageable);
+    public PagePayload<PostListResBody> getPostList(
+            Pageable pageable,
+            String keyword,
+            Long categoryId,
+            List<Long> regionIds
+    ) {
+        boolean hasFilter =
+                (keyword != null && !keyword.isBlank()) ||
+                        categoryId != null ||
+                        (regionIds != null && !regionIds.isEmpty());
+
+        Page<Post> postPage;
+
+        if (regionIds != null && regionIds.isEmpty()) {
+            regionIds = null;
+        }
+
+        if (hasFilter) {
+            postPage = postRepository.findFilteredPosts(keyword, categoryId, regionIds, pageable);
+        } else {
+            postPage = postRepository.findAll(pageable);
+        }
 
         Page<PostListResBody> mappedPage = postPage.map(post ->
                 PostListResBody.builder()
@@ -112,13 +132,15 @@ public class PostService {
                                 post.getImages().stream()
                                         .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
                                         .findFirst()
-                                        .map(img -> img.getImageUrl())
+                                        .map(PostImage::getImageUrl)
                                         .orElse(null)
                         )
                         .categoryId(post.getCategory().getId())
-                        .regionIds(post.getPostRegions().stream()
-                                .map(postRegion -> postRegion.getRegion().getId())
-                                .collect(Collectors.toList()))
+                        .regionIds(
+                                post.getPostRegions().stream()
+                                        .map(postRegion -> postRegion.getRegion().getId())
+                                        .collect(Collectors.toList())
+                        )
                         .receiveMethod(post.getReceiveMethod())
                         .returnMethod(post.getReturnMethod())
                         .createdAt(post.getCreatedAt())
@@ -129,9 +151,10 @@ public class PostService {
                         .isBanned(post.getIsBanned())
                         .build()
         );
-        return PageUt.of(mappedPage);
 
+        return PageUt.of(mappedPage);
     }
+
 
     public PostDetailResBody getPostById(Long postId) {
         Post post = postRepository.findById(postId)

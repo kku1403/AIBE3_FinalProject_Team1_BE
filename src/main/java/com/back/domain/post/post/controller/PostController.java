@@ -18,6 +18,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
@@ -44,9 +46,12 @@ public class PostController {
     public ResponseEntity<PagePayload<PostListResBody>> getPostList(
             @ParameterObject
             @PageableDefault(size = 30, sort = "id", direction = Sort.Direction.DESC)
-            Pageable pageable
+            Pageable pageable,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) List<Long> regionIds
     ) {
-        PagePayload<PostListResBody> body = postService.getPostList(pageable);
+        PagePayload<PostListResBody> body = postService.getPostList(pageable, keyword, categoryId, regionIds);
         return ResponseEntity.ok(body);
     }
 
