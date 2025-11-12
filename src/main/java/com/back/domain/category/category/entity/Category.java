@@ -15,7 +15,6 @@ import java.util.List;
 public class Category extends BaseEntity {
 
     @Setter
-    @Column(unique = true, nullable = false)
     private String name;
 
     @ManyToOne(fetch = FetchType.LAZY)
