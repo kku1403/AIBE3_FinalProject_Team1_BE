@@ -2,14 +2,10 @@ package com.back.domain.post.post.service;
 
 import com.back.domain.category.category.entity.Category;
 import com.back.domain.category.category.repository.CategoryRepository;
-import com.back.domain.member.member.dto.AuthorDto;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.post.post.dto.req.PostCreateReqBody;
-import com.back.domain.post.post.dto.res.PostDetailResBody;
-import com.back.domain.post.post.dto.res.PostImageResBody;
-import com.back.domain.post.post.dto.res.PostListResBody;
-import com.back.domain.post.post.dto.res.PostOptionResBody;
+import com.back.domain.post.post.dto.res.*;
 import com.back.domain.post.post.entity.*;
 import com.back.domain.post.post.repository.PostFavoriteRepository;
 import com.back.domain.post.post.repository.PostOptionRepository;
@@ -39,7 +35,7 @@ public class PostService {
     private final RegionRepository regionRepository;
     private final CategoryRepository categoryRepository;
 
-    public Long createPost(PostCreateReqBody reqBody, Long memberId) {
+    public void createPost(PostCreateReqBody reqBody, Long memberId) {
 
         Member author = memberRepository.findById(memberId).orElseThrow(() -> new ServiceException("404-1", "존재하지 않는 회원입니다."));
 
@@ -96,8 +92,7 @@ public class PostService {
                 .toList();
         post.getPostRegions().addAll(postRegions);
 
-        Post savedPost = postRepository.save(post);
-        return savedPost.getId();
+        postRepository.save(post);
     }
 
     public PagePayload<PostListResBody> getPostList(
@@ -203,7 +198,7 @@ public class PostService {
                 )
                 .createdAt(post.getCreatedAt())
                 .modifiedAt(post.getModifiedAt())
-                .author(AuthorDto.from(post.getAuthor()))
+                .author(PostAuthorDto.from(post.getAuthor()))
                 .isFavorite(isFavorite)
                 .isBanned(post.getIsBanned())
                 .build();
@@ -300,4 +295,15 @@ public class PostService {
         });
         return PageUt.of(mappedPage);
     }
+
+    public void updatePost(Long postId, PostCreateReqBody reqBody, long memberId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ServiceException("404-2", "존재하지 않는 게시글입니다."));
+
+
+        if (post.getAuthor().getId().equals(memberId)) {
+            throw new ServiceException("404-1", "본인의 게시글만 수정할 수 있습니다.");
+        }
+    }
+
 }

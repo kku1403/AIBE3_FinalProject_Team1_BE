@@ -1,7 +1,6 @@
 package com.back.domain.post.post.controller;
 
 import com.back.domain.post.post.dto.req.PostCreateReqBody;
-import com.back.domain.post.post.dto.res.PostCreateResBody;
 import com.back.domain.post.post.dto.res.PostDetailResBody;
 import com.back.domain.post.post.dto.res.PostListResBody;
 import com.back.domain.post.post.service.PostService;
@@ -28,18 +27,13 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping
-    public ResponseEntity<PostCreateResBody> createPost(
+    public ResponseEntity<String> createPost(
             @Valid @RequestBody PostCreateReqBody reqBody,
             @AuthenticationPrincipal SecurityUser user
     ) {
-        Long postId = postService.createPost(reqBody, user.getId());
+        postService.createPost(reqBody, user.getId());
 
-        PostCreateResBody response = PostCreateResBody.builder()
-                .message("게시글이 등록되었습니다.")
-                .postId(postId)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body("게시글이 생성되었습니다");
     }
 
     @GetMapping
@@ -76,7 +70,7 @@ public class PostController {
         return ResponseEntity.ok(body);
     }
 
-    @PostMapping("favorites/{postId}")
+    @PostMapping("/favorites/{postId}")
     public ResponseEntity<String> toggleFavorite(
             @PathVariable Long postId,
             @AuthenticationPrincipal SecurityUser user) {
@@ -94,4 +88,16 @@ public class PostController {
         PagePayload<PostListResBody> body = postService.getFavoritePosts(user.getId(), pageable);
         return ResponseEntity.ok(body);
     }
+
+    @PutMapping("/{postId}")
+    public ResponseEntity<String> updatePost(
+            @PathVariable Long postId,
+            @Valid @RequestBody PostCreateReqBody reqBody,
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+        postService.updatePost(postId, reqBody, user.getId());
+
+        return ResponseEntity.ok("게시글이 수정되었습니다.");
+    }
+
 }
