@@ -132,6 +132,11 @@ class ChatControllerTest {
         );
 
         // 게시글 생성
+        Category category = categoryRepository.save(Category.builder()
+                .name("노트북")
+                .parent(null)
+                .build());
+
         post1 = postRepository.save(Post.builder()
                 .title("캠핑 텐트 대여")
                 .content("4인용 텐트입니다.")
@@ -152,6 +157,7 @@ class ChatControllerTest {
                 .deposit(50000)
                 .fee(20000)
                 .author(member3)
+                .category(category)
                 .build()
         );
 
@@ -163,6 +169,7 @@ class ChatControllerTest {
                 .deposit(30000)
                 .fee(15000)
                 .author(member4)
+                .category(category)
                 .build()
         );
 
