@@ -38,6 +38,7 @@ public class SecurityConfig {
             "/api/v1/members/**",           // 회원 인증 (로그인, 회원가입, OAuth2 등)
             "/swagger-ui/**",         // Swagger UI
             "/swagger-ui.html",       // Swagger UI HTML
+            "/v3/api-docs", "/v3/api-docs/**", // Swagger OpenApi JSON 문서
             "/h2-console/**",          // H2 콘솔 (개발용)
             "/actuator/health", "/actuator/health/**", "/actuator/info",    // Spring Actuator
             "/api/actuator/health", "/api/actuator/health/**", "/api/actuator/info"
@@ -51,7 +52,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/v1/posts/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/v1/regions/**").permitAll()
-                        .requestMatchers("/api/*/adm/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/adm/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin))
