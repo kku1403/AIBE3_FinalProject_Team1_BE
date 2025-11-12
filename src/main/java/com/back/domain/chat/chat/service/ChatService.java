@@ -1,5 +1,6 @@
 package com.back.domain.chat.chat.service;
 
+import com.back.domain.chat.chat.dto.ChatRoomDto;
 import com.back.domain.chat.chat.dto.CreateChatRoomResBody;
 import com.back.domain.chat.chat.entity.ChatRoom;
 import com.back.domain.chat.chat.repository.ChatMemberRepository;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -47,5 +49,9 @@ public class ChatService {
         chatRoomRepository.save(chatRoom);
 
         return new CreateChatRoomResBody("채팅방이 생성되었습니다.", chatRoom.getId());
+    }
+
+    public List<ChatRoomDto> getMyChatRooms(Long memberId) {
+        return chatRoomRepository.findByMemberId(memberId);
     }
 }

@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -164,4 +165,32 @@ class ChatControllerTest {
         resultActions
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @DisplayName("내 채팅방 목록 조회 - 값 검증")
+    void test4_getMyChatRooms_exactValues() throws Exception {
+        // given
+        Member user1 = memberRepository.findByEmail("user1@test.com").get();
+        Member user2 = memberRepository.findByEmail("user2@test.com").get();
+
+        // 채팅방 생성
+        chatService.createChatRoom(post.getId(), user1.getId());
+
+        // when
+        ResultActions resultActions = mvc.perform(
+                get("/api/v1/chats")
+                        .contentType(MediaType.APPLICATION_JSON)
+        ).andDo(print());
+
+        // then
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].post.title").value(post.getTitle()))
+                .andExpect(jsonPath("$[0].otherMember.id").value(user2.getId().intValue()))
+                .andExpect(jsonPath("$[0].otherMember.nickname").value(user2.getNickname()))
+                .andExpect(jsonPath("$[0].otherMember.profileImgUrl").value(user2.getProfileImgUrl()));
+    }
+
 }
