@@ -79,5 +79,4 @@ public interface PostApi {
             @AuthenticationPrincipal SecurityUser user
     );
 
-    
 }
