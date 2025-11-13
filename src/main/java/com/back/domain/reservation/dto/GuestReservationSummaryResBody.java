@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record GuestReservationSummaryResBody(
-        Long reservationId,
+        Long id,
         ReservationPostSummaryDto post, // Post 요약 정보
         ReservationStatus status,
         ReservationDeliveryMethod receiveMethod,

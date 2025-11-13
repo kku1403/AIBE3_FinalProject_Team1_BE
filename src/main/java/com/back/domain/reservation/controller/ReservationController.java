@@ -37,7 +37,7 @@ public class ReservationController implements ReservationApi {
 
         ReservationDto reservationDto = reservationService.create(ReqBody, author);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(new RsData<>(HttpStatus.CREATED, "%d번 예약이 생성되었습니다".formatted(reservationDto.reservationId()), reservationDto));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new RsData<>(HttpStatus.CREATED, "%d번 예약이 생성되었습니다".formatted(reservationDto.id()), reservationDto));
     }
 
     @Transactional(readOnly = true)

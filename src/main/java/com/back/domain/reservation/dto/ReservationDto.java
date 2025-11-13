@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public record ReservationDto(
-        Long reservationId,
+        Long id,
         Long postId,
         AuthorDto author,
         ReservationStatus status,
