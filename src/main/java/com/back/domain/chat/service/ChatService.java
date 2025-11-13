@@ -5,7 +5,7 @@ import com.back.domain.chat.dto.CreateChatRoomResBody;
 import com.back.domain.chat.entity.ChatRoom;
 import com.back.domain.chat.repository.ChatRoomRepository;
 import com.back.domain.member.entity.Member;
-import com.back.domain.member.service.MemberService;
+import com.back.domain.member.repository.MemberRepository;
 import com.back.domain.post.post.entity.Post;
 import com.back.domain.post.post.repository.PostRepository;
 import com.back.global.exception.ServiceException;
@@ -24,8 +24,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ChatService {
-    // TODO : 주입 계층 통일
-    private final MemberService memberService;
+    private final MemberRepository memberRepository;
     private final PostRepository postRepository;
     private final ChatRoomRepository chatRoomRepository;
 
@@ -49,7 +48,7 @@ public class ChatService {
                 .post(post)
                 .build();
 
-        Member guest = memberService.getById(memberId);
+        Member guest = memberRepository.findById(memberId).orElseThrow(() -> new ServiceException(HttpStatus.NOT_FOUND, "존재하지 않는 회원입니다."));
         chatRoom.addMember(host);
         chatRoom.addMember(guest);
 

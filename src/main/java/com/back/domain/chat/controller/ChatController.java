@@ -33,7 +33,6 @@ public class ChatController {
         return ResponseEntity.ok(body);
     }
 
-    // TODO : 페이지네이션 & 검색 기능 추가
     @GetMapping
     public ResponseEntity<PagePayload<ChatRoomDto>> getMyChatRooms(
             @PageableDefault(size = 10, page = 0, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
