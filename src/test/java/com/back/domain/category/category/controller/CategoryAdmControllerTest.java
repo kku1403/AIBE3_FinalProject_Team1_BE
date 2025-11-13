@@ -104,10 +104,12 @@ class CategoryAdmControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqBody))
                         .cookie(new Cookie("accessToken", "mock-access-token")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("새 카테고리"))
-                .andExpect(jsonPath("$.child").isEmpty());
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value(201))
+                .andExpect(jsonPath("$.msg").value("카테고리 등록 성공"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.name").value("새 카테고리"))
+                .andExpect(jsonPath("$.data.child").isEmpty());
 
         verify(categoryService).createCategory(any(CategoryCreateReqBody.class));
     }
@@ -126,9 +128,11 @@ class CategoryAdmControllerTest {
                         .content(objectMapper.writeValueAsString(reqBody))
                         .cookie(new Cookie("accessToken", "mock-access-token")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("수정된 카테고리"))
-                .andExpect(jsonPath("$.child").isEmpty());
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("카테고리 수정 성공"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.name").value("수정된 카테고리"))
+                .andExpect(jsonPath("$.data.child").isEmpty());
 
         verify(categoryService).updateCategory(eq(1L), any(CategoryUpdateReqBody.class));
     }
@@ -142,7 +146,10 @@ class CategoryAdmControllerTest {
         // when & then
         mockMvc.perform(delete("/api/v1/adm/categories/{id}", 1L)
                         .cookie(new Cookie("accessToken", "mock-access-token")))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("카테고리 삭제 성공"))
+                .andExpect(jsonPath("$.data").doesNotExist()); // data 없음
 
         verify(categoryService).deleteCategory(1L);
     }

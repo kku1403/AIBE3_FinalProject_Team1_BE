@@ -4,8 +4,10 @@ import com.back.domain.category.dto.CategoryCreateReqBody;
 import com.back.domain.category.dto.CategoryResBody;
 import com.back.domain.category.dto.CategoryUpdateReqBody;
 import com.back.domain.category.service.CategoryService;
+import com.back.global.rsData.RsData;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,22 +19,25 @@ public class CategoryAdmController implements CategoryAdmApi {
     private final CategoryService categoryService;
 
     @PostMapping
-    public ResponseEntity<CategoryResBody> createCategory(@Valid @RequestBody CategoryCreateReqBody categoryCreateReqBody) {
+    public ResponseEntity<RsData<CategoryResBody>> createCategory(@Valid @RequestBody CategoryCreateReqBody categoryCreateReqBody) {
         CategoryResBody categoryResBody = categoryService.createCategory(categoryCreateReqBody);
-        return ResponseEntity.ok(categoryResBody);
+        RsData<CategoryResBody> response = new RsData<>(HttpStatus.CREATED, "카테고리 등록 성공", categoryResBody);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<CategoryResBody> updateCategory(
+    public ResponseEntity<RsData<CategoryResBody>> updateCategory(
             @PathVariable("id") Long categoryId,
             @Valid @RequestBody CategoryUpdateReqBody categoryUpdateReqBody) {
         CategoryResBody categoryResBody = categoryService.updateCategory(categoryId, categoryUpdateReqBody);
-        return ResponseEntity.ok(categoryResBody);
+        RsData<CategoryResBody> response = new RsData<>(HttpStatus.OK, "카테고리 수정 성공", categoryResBody);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable("id") Long categoryId) {
+    public ResponseEntity<RsData<Void>> deleteCategory(@PathVariable("id") Long categoryId) {
         categoryService.deleteCategory(categoryId);
-        return ResponseEntity.ok().build();
+        RsData<Void> response = new RsData<>(HttpStatus.OK, "카테고리 삭제 성공");
+        return ResponseEntity.ok(response);
     }
 }

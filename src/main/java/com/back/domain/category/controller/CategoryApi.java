@@ -1,6 +1,7 @@
 package com.back.domain.category.controller;
 
 import com.back.domain.category.dto.CategoryResBody;
+import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -11,5 +12,5 @@ import java.util.List;
 public interface CategoryApi {
 
     @Operation(summary = "카테고리 목록 조회 API", description = "카테고리들과 함께 연관된 하위 카테고리들 목록 조회")
-    ResponseEntity<List<CategoryResBody>> readCategories();
+    ResponseEntity<RsData<List<CategoryResBody>>> readCategories();
 }
