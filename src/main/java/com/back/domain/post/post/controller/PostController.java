@@ -44,6 +44,7 @@ public class PostController {
 
     @GetMapping
     public ResponseEntity<PagePayload<PostListResBody>> getPostList(
+            @AuthenticationPrincipal SecurityUser user,
             @ParameterObject
             @PageableDefault(size = 30, sort = "id", direction = Sort.Direction.DESC)
             Pageable pageable,
@@ -51,24 +52,46 @@ public class PostController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) List<Long> regionIds
     ) {
-        PagePayload<PostListResBody> body = postService.getPostList(pageable, keyword, categoryId, regionIds);
+        Long memberId = (user != null) ? user.getId() : null;
+        PagePayload<PostListResBody> body = postService.getPostList(pageable, keyword, categoryId, regionIds, memberId);
         return ResponseEntity.ok(body);
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostDetailResBody> getPostById(@PathVariable Long postId) {
-        PostDetailResBody body = postService.getPostById(postId);
+    public ResponseEntity<PostDetailResBody> getPostById(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal SecurityUser user) {
+        PostDetailResBody body = postService.getPostById(postId, user.getId());
         return ResponseEntity.ok(body);
     }
 
     @GetMapping("/my")
     public ResponseEntity<PagePayload<PostListResBody>> getMyPostList(
-            @AuthenticationPrincipal SecurityUser securityUser,
+            @AuthenticationPrincipal SecurityUser user,
             @ParameterObject
             @PageableDefault(size = 30, sort = "id", direction = Sort.Direction.DESC)
             Pageable pageable
     ) {
-        PagePayload<PostListResBody> body = postService.getMyPosts(securityUser.getId(), pageable);
+        PagePayload<PostListResBody> body = postService.getMyPosts(user.getId(), pageable);
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("favorites/{postId}")
+    public ResponseEntity<String> toggleFavorite(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal SecurityUser user) {
+        boolean isFavorite = postService.toggleFavorite(postId, user.getId());
+        return ResponseEntity.ok(isFavorite ? "즐겨찾기에 추가되었습니다." : "즐겨찾기가 해제되었습니다.");
+    }
+
+    @GetMapping("/favorites")
+    public ResponseEntity<PagePayload<PostListResBody>> getFavoritePosts(
+            @AuthenticationPrincipal SecurityUser user,
+            @ParameterObject
+            @PageableDefault(size = 30, sort = "id", direction = Sort.Direction.DESC)
+            Pageable pageable
+    ) {
+        PagePayload<PostListResBody> body = postService.getFavoritePosts(user.getId(), pageable);
         return ResponseEntity.ok(body);
     }
 }
