@@ -1,16 +1,26 @@
 package com.back.domain.reservation.repository;
 
+import com.back.domain.member.entity.Member;
+import com.back.domain.member.entity.QMember;
+import com.back.domain.post.entity.Post;
 import com.back.domain.reservation.common.ReservationStatus;
 import com.back.domain.reservation.entity.Reservation;
 import com.back.global.queryDsl.CustomQuerydslRepositorySupport;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
+import static com.back.domain.member.entity.QMember.member;
+import static com.back.domain.post.entity.QPost.post;
+import static com.back.domain.post.entity.QPostImage.postImage;
+import static com.back.domain.post.entity.QPostOption.postOption;
 import static com.back.domain.reservation.entity.QReservation.reservation;
-
+import static com.back.domain.reservation.entity.QReservationOption.reservationOption;
 
 @Repository
 public class ReservationQueryRepository extends CustomQuerydslRepositorySupport
@@ -62,6 +72,97 @@ public class ReservationQueryRepository extends CustomQuerydslRepositorySupport
         return result != null;
     }
 
+    @Override
+    public Optional<Reservation> findByIdWithAll(Long id) {
+        Reservation result = selectFrom(reservation)
+                .leftJoin(reservation.post, post).fetchJoin()
+                .leftJoin(reservation.author, member).fetchJoin()
+                .leftJoin(reservation.reservationOptions, reservationOption).fetchJoin()
+                .leftJoin(reservationOption.postOption, postOption).fetchJoin()
+                .where(reservation.id.eq(id))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Optional<Reservation> findByIdWithPostAndAuthor(Long id) {
+        QMember guest = new QMember("guest");      // ← 게스트용 별칭
+        QMember host = new QMember("host");        // ← 호스트용 별칭
+
+        Reservation result = selectFrom(reservation)
+                .leftJoin(reservation.post, post).fetchJoin()
+                .leftJoin(reservation.author, guest).fetchJoin()
+                .leftJoin(post.author, host).fetchJoin()
+                .where(reservation.id.eq(id))
+                .fetchOne();
+
+        return Optional.ofNullable(result);
+    }
+
+    @Override
+    public Page<Reservation> findByAuthorWithFetch(
+            Member author,
+            ReservationStatus status,
+            String keyword,
+            Pageable pageable) {
+
+        return applyPagination(pageable,
+                // Function<JPAQueryFactory, JPAQuery<Reservation>> contentQuery
+                queryFactory -> queryFactory
+                        .selectFrom(reservation)
+                        .leftJoin(reservation.post, post).fetchJoin()
+                        .leftJoin(post.author, member).fetchJoin()
+                        .leftJoin(post.images, postImage)
+                        .leftJoin(reservation.reservationOptions, reservationOption).fetchJoin()
+                        .leftJoin(reservationOption.postOption, postOption).fetchJoin()
+                        .where(
+                                reservation.author.eq(author),
+                                statusEq(status),
+                                postTitleContains(keyword)
+                        ),
+                // Function<JPAQueryFactory, JPAQuery<Long>> countQuery
+                queryFactory -> queryFactory
+                        .select(reservation.count())
+                        .from(reservation)
+                        .where(
+                                reservation.author.eq(author),
+                                statusEq(status),
+                                postTitleContains(keyword)
+                        )
+        );
+    }
+
+    @Override
+    public Page<Reservation> findByPostWithFetch(
+            Post post,
+            ReservationStatus status,
+            Pageable pageable) {
+
+        // contentQuery: 실제 조회할 데이터를 반환하는 쿼리 (페이징/정렬 적용 전)
+        return applyPagination(pageable,
+                // Function<JPAQueryFactory, JPAQuery<Reservation>> contentQuery
+                queryFactory -> queryFactory
+                        .selectFrom(reservation)
+                        .leftJoin(reservation.reservationOptions, reservationOption).fetchJoin()
+                        .leftJoin(reservationOption.postOption, postOption).fetchJoin()
+                        .where(
+                                reservation.post.eq(post),
+                                statusEq(status)
+                        ),
+                // Function<JPAQueryFactory, JPAQuery<Long>> countQuery
+                queryFactory -> queryFactory
+                        .select(reservation.count())
+                        .from(reservation)
+                        .where(
+                                reservation.post.eq(post),
+                                statusEq(status)
+                        )
+        );
+    }
+
+
+
     // ===== 동적 조건 메서드 (Report 예시 스타일) =====
 
     private BooleanExpression postIdEq(Long postId) {
@@ -90,5 +191,15 @@ public class ReservationQueryRepository extends CustomQuerydslRepositorySupport
         }
         return reservation.reservationStartAt.lt(endAt)
                 .and(reservation.reservationEndAt.goe(startAt));
+    }
+
+    private BooleanExpression statusEq(ReservationStatus status) {
+        return status != null ? reservation.status.eq(status) : null;
+    }
+
+    private BooleanExpression postTitleContains(String keyword) {
+        return keyword != null && !keyword.isBlank()
+                ? reservation.post.title.containsIgnoreCase(keyword)
+                : null;
     }
 }

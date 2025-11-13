@@ -1,10 +1,10 @@
-package com.back.domain.chat.chat.controller;
+package com.back.domain.chat.controller;
 
 import com.back.domain.category.entity.Category;
 import com.back.domain.category.repository.CategoryRepository;
-import com.back.domain.chat.chat.dto.CreateChatRoomReqBody;
-import com.back.domain.chat.chat.repository.ChatRoomRepository;
-import com.back.domain.chat.chat.service.ChatService;
+import com.back.domain.chat.dto.CreateChatRoomReqBody;
+import com.back.domain.chat.repository.ChatRoomRepository;
+import com.back.domain.chat.service.ChatService;
 import com.back.domain.member.common.MemberRole;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
@@ -26,6 +26,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -75,68 +77,63 @@ class ChatControllerTest {
         memberRepository.deleteAll();
 
         // 회원 생성
-        member1 = memberRepository.save(Member.builder()
-                .email("user1@test.com")
-                .password("1234")
-                .name("홍길동")
-                .phoneNumber("010-1111-1111")
-                .address1("서울시 강남구")
-                .address2("테헤란로 123")
-                .nickname("hong")
-                .isBanned(false)
-                .role(MemberRole.USER)
-                .profileImgUrl(null)
-                .build()
-        );
+        member1 = memberRepository.save(new Member(
+                "user1@test.com",
+                "1234",
+                "홍길동",
+                "010-1111-1111",
+                "서울시 강남구",
+                "테헤란로 123",
+                "hong",
+                false,
+                MemberRole.USER,
+                null
+        ));
 
-        member2 = memberRepository.save(Member.builder()
-                .email("user2@test.com")
-                .password("1234")
-                .name("김철수")
-                .phoneNumber("010-2222-2222")
-                .address1("서울시 서초구")
-                .address2("서초대로 456")
-                .nickname("kim")
-                .isBanned(false)
-                .role(MemberRole.USER)
-                .profileImgUrl(null)
-                .build()
-        );
+        member2 = memberRepository.save(new Member(
+                "user2@test.com",
+                "1234",
+                "김철수",
+                "010-2222-2222",
+                "서울시 서초구",
+                "서초대로 456",
+                "kim",
+                false,
+                MemberRole.USER,
+                null
+        ));
 
-        member3 = memberRepository.save(Member.builder()
-                .email("user3@test.com")
-                .password("1234")
-                .name("이영희")
-                .phoneNumber("010-3333-3333")
-                .address1("서울시 마포구")
-                .address2("월드컵북로 789")
-                .nickname("lee")
-                .isBanned(false)
-                .role(MemberRole.USER)
-                .profileImgUrl(null)
-                .build()
-        );
+        member3 = memberRepository.save(new Member(
+                "user3@test.com",
+                "1234",
+                "이영희",
+                "010-3333-3333",
+                "서울시 마포구",
+                "월드컵북로 789",
+                "lee",
+                false,
+                MemberRole.USER,
+                null
+        ));
 
-        member4 = memberRepository.save(Member.builder()
-                .email("user4@test.com")
-                .password("1234")
-                .name("박민수")
-                .phoneNumber("010-4444-4444")
-                .address1("서울시 송파구")
-                .address2("잠실로 101")
-                .nickname("park")
-                .isBanned(false)
-                .role(MemberRole.USER)
-                .profileImgUrl(null)
-                .build()
-        );
+        member4 = memberRepository.save(new Member(
+                "user4@test.com",
+                "1234",
+                "박민수",
+                "010-4444-4444",
+                "서울시 송파구",
+                "잠실로 101",
+                "park",
+                false,
+                MemberRole.USER,
+                null
+        ));
 
         // 게시글 생성
-        Category category = categoryRepository.save(
-                Category.create("노트북", null)
-        );
+        Category category = Category.create("노트북", null);
+        categoryRepository.save(category);
 
-        post1 = postRepository.save(Post.of(
+        post1 = postRepository.save(new Post(
                 "캠핑 텐트 대여",
                 "4인용 텐트입니다.",
                 ReceiveMethod.DELIVERY,
@@ -145,11 +142,15 @@ class ChatControllerTest {
                 null,
                 10000,
                 5000,
+                false,
                 member2,
+                new ArrayList<>(),   // options
+                new ArrayList<>(),   // images
+                new ArrayList<>(),   // postRegions
                 category
         ));
 
-        post2 = postRepository.save(Post.of(
+        post2 = postRepository.save(new Post(
                 "노트북 대여합니다",
                 "맥북 프로입니다.",
                 ReceiveMethod.DIRECT,
@@ -158,11 +159,15 @@ class ChatControllerTest {
                 null,
                 50000,
                 20000,
+                false,
                 member3,
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new ArrayList<>(),
                 category
         ));
 
-        post3 = postRepository.save(Post.of(
+        post3 = postRepository.save(new Post(
                 "카메라 렌탈",
                 "소니 A7III입니다.",
                 ReceiveMethod.ANY,
@@ -171,7 +176,11 @@ class ChatControllerTest {
                 null,
                 30000,
                 15000,
+                false,
                 member4,
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new ArrayList<>(),
                 category
         ));
 
@@ -200,8 +209,9 @@ class ChatControllerTest {
         // then
         resultActions
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("채팅방이 생성되었습니다."))
-                .andExpect(jsonPath("$.chatRoomId").exists());
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("채팅방이 생성되었습니다."))
+                .andExpect(jsonPath("$.data.chatRoomId").exists());
     }
 
     @Test
@@ -221,8 +231,9 @@ class ChatControllerTest {
         // then
         resultActions
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("이미 존재하는 채팅방입니다."))
-                .andExpect(jsonPath("$.chatRoomId").exists());
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("이미 존재하는 채팅방입니다."))
+                .andExpect(jsonPath("$.data.chatRoomId").exists());
     }
 
     @Test
@@ -260,7 +271,7 @@ class ChatControllerTest {
 //        // then
 //        resultActions
 //                .andExpect(status().isBadRequest())
-//                .andExpect(jsonPath("$.resultCode").value("400-1"))
+//                .andExpect(jsonPath("$.status").value(400))
 //                .andExpect(jsonPath("$.msg").value("본인과 채팅방을 만들 수 없습니다."));
 //    }
 
@@ -277,12 +288,14 @@ class ChatControllerTest {
         // then
         resultActions
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(3))  // 3개 채팅방
-                .andExpect(jsonPath("$.page.page").value(0))
-                .andExpect(jsonPath("$.page.size").value(10))
-                .andExpect(jsonPath("$.page.totalElements").value(3))
-                .andExpect(jsonPath("$.page.totalPages").value(1));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("내 채팅방 목록"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(3))
+                .andExpect(jsonPath("$.data.page.page").value(0))
+                .andExpect(jsonPath("$.data.page.size").value(10))
+                .andExpect(jsonPath("$.data.page.totalElements").value(3))
+                .andExpect(jsonPath("$.data.page.totalPages").value(1));
     }
 
     @Test
@@ -299,11 +312,13 @@ class ChatControllerTest {
         // then
         resultActions
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(1))
-                .andExpect(jsonPath("$.content[0].post.title").value("캠핑 텐트 대여"))
-                .andExpect(jsonPath("$.content[0].otherMember.nickname").value("kim"))
-                .andExpect(jsonPath("$.page.totalElements").value(1));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("내 채팅방 목록"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].post.title").value("캠핑 텐트 대여"))
+                .andExpect(jsonPath("$.data.content[0].otherMember.nickname").value("kim"))
+                .andExpect(jsonPath("$.data.page.totalElements").value(1));
     }
 
     @Test
@@ -320,9 +335,11 @@ class ChatControllerTest {
         // then
         resultActions
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(2))  // "캠핑 텐트 대여", "노트북 대여합니다"
-                .andExpect(jsonPath("$.page.totalElements").value(2));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("내 채팅방 목록"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.page.totalElements").value(2));
     }
 
     @Test
@@ -339,18 +356,20 @@ class ChatControllerTest {
         // then
         resultActions
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(1))
-                .andExpect(jsonPath("$.content[0].otherMember.nickname").value("kim"))
-                .andExpect(jsonPath("$.content[0].post.title").value("캠핑 텐트 대여"))
-                .andExpect(jsonPath("$.page.totalElements").value(1));
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("내 채팅방 목록"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.content[0].otherMember.nickname").value("kim"))
+                .andExpect(jsonPath("$.data.content[0].post.title").value("캠핑 텐트 대여"))
+                .andExpect(jsonPath("$.data.page.totalElements").value(1));
     }
 
     @Test
     @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("채팅방 목록 조회 - 페이징 테스트")
     void test9_getMyChatRooms_pagination() throws Exception {
-        // when - 첫 페이지 (size=2)
+        // 첫 페이지 (size=2)
         ResultActions resultActions = mvc.perform(get("/api/v1/chats")
                         .param("page", "0")
                         .param("size", "2"))
@@ -359,16 +378,16 @@ class ChatControllerTest {
         // then
         resultActions
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(2))
-                .andExpect(jsonPath("$.page.page").value(0))
-                .andExpect(jsonPath("$.page.size").value(2))
-                .andExpect(jsonPath("$.page.totalElements").value(3))
-                .andExpect(jsonPath("$.page.totalPages").value(2))
-                .andExpect(jsonPath("$.page.first").value(true))
-                .andExpect(jsonPath("$.page.last").value(false))
-                .andExpect(jsonPath("$.page.hasNext").value(true));
+                .andExpect(jsonPath("$.data.content.length()").value(2))
+                .andExpect(jsonPath("$.data.page.page").value(0))
+                .andExpect(jsonPath("$.data.page.size").value(2))
+                .andExpect(jsonPath("$.data.page.totalElements").value(3))
+                .andExpect(jsonPath("$.data.page.totalPages").value(2))
+                .andExpect(jsonPath("$.data.page.first").value(true))
+                .andExpect(jsonPath("$.data.page.last").value(false))
+                .andExpect(jsonPath("$.data.page.hasNext").value(true));
 
-        // when - 두 번째 페이지
+        // 두 번째 페이지
         ResultActions resultActions2 = mvc.perform(get("/api/v1/chats")
                         .param("page", "1")
                         .param("size", "2"))
@@ -377,11 +396,11 @@ class ChatControllerTest {
         // then
         resultActions2
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content.length()").value(1))
-                .andExpect(jsonPath("$.page.page").value(1))
-                .andExpect(jsonPath("$.page.totalElements").value(3))
-                .andExpect(jsonPath("$.page.first").value(false))
-                .andExpect(jsonPath("$.page.last").value(true))
-                .andExpect(jsonPath("$.page.hasNext").value(false));
+                .andExpect(jsonPath("$.data.content.length()").value(1))
+                .andExpect(jsonPath("$.data.page.page").value(1))
+                .andExpect(jsonPath("$.data.page.totalElements").value(3))
+                .andExpect(jsonPath("$.data.page.first").value(false))
+                .andExpect(jsonPath("$.data.page.last").value(true))
+                .andExpect(jsonPath("$.data.page.hasNext").value(false));
     }
 }
