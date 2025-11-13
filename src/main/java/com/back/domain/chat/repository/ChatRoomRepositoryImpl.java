@@ -1,9 +1,9 @@
-package com.back.domain.chat.chat.repository;
+package com.back.domain.chat.repository;
 
-import com.back.domain.chat.chat.dto.ChatRoomDto;
-import com.back.domain.chat.chat.dto.OtherMemberDto;
-import com.back.domain.chat.chat.dto.ChatPostDto;
-import com.back.domain.chat.chat.entity.QChatMember;
+import com.back.domain.chat.dto.ChatRoomDto;
+import com.back.domain.chat.dto.OtherMemberDto;
+import com.back.domain.chat.dto.ChatPostDto;
+import com.back.domain.chat.entity.QChatMember;
 import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -15,8 +15,8 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 
-import static com.back.domain.chat.chat.entity.QChatMember.chatMember;
-import static com.back.domain.chat.chat.entity.QChatRoom.chatRoom;
+import static com.back.domain.chat.entity.QChatMember.chatMember;
+import static com.back.domain.chat.entity.QChatRoom.chatRoom;
 import static com.back.domain.member.entity.QMember.member;
 import static com.back.domain.post.post.entity.QPost.post;
 

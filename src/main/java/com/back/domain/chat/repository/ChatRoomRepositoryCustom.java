@@ -1,6 +1,6 @@
-package com.back.domain.chat.chat.repository;
+package com.back.domain.chat.repository;
 
-import com.back.domain.chat.chat.dto.ChatRoomDto;
+import com.back.domain.chat.dto.ChatRoomDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

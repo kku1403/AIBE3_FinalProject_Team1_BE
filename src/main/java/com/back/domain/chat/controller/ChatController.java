@@ -1,9 +1,9 @@
-package com.back.domain.chat.chat.controller;
+package com.back.domain.chat.controller;
 
-import com.back.domain.chat.chat.dto.ChatRoomDto;
-import com.back.domain.chat.chat.dto.CreateChatRoomReqBody;
-import com.back.domain.chat.chat.dto.CreateChatRoomResBody;
-import com.back.domain.chat.chat.service.ChatService;
+import com.back.domain.chat.dto.ChatRoomDto;
+import com.back.domain.chat.dto.CreateChatRoomReqBody;
+import com.back.domain.chat.dto.CreateChatRoomResBody;
+import com.back.domain.chat.service.ChatService;
 import com.back.global.security.SecurityUser;
 import com.back.standard.util.page.PagePayload;
 import lombok.RequiredArgsConstructor;

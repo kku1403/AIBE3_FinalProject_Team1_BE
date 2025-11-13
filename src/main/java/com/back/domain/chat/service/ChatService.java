@@ -1,9 +1,9 @@
-package com.back.domain.chat.chat.service;
+package com.back.domain.chat.service;
 
-import com.back.domain.chat.chat.dto.ChatRoomDto;
-import com.back.domain.chat.chat.dto.CreateChatRoomResBody;
-import com.back.domain.chat.chat.entity.ChatRoom;
-import com.back.domain.chat.chat.repository.ChatRoomRepository;
+import com.back.domain.chat.dto.ChatRoomDto;
+import com.back.domain.chat.dto.CreateChatRoomResBody;
+import com.back.domain.chat.entity.ChatRoom;
+import com.back.domain.chat.repository.ChatRoomRepository;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.service.MemberService;
 import com.back.domain.post.post.entity.Post;

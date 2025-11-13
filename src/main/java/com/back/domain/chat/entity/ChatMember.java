@@ -1,4 +1,4 @@
-package com.back.domain.chat.chat.entity;
+package com.back.domain.chat.entity;
 
 import com.back.domain.member.entity.Member;
 import com.back.global.jpa.entity.BaseEntity;

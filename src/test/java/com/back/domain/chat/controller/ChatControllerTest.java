@@ -1,10 +1,10 @@
-package com.back.domain.chat.chat.controller;
+package com.back.domain.chat.controller;
 
 import com.back.domain.category.category.entity.Category;
 import com.back.domain.category.category.repository.CategoryRepository;
-import com.back.domain.chat.chat.dto.CreateChatRoomReqBody;
-import com.back.domain.chat.chat.repository.ChatRoomRepository;
-import com.back.domain.chat.chat.service.ChatService;
+import com.back.domain.chat.dto.CreateChatRoomReqBody;
+import com.back.domain.chat.repository.ChatRoomRepository;
+import com.back.domain.chat.service.ChatService;
 import com.back.domain.member.common.MemberRole;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
