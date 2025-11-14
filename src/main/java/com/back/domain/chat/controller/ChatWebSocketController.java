@@ -5,6 +5,7 @@ import com.back.domain.chat.dto.SendChatMessageDto;
 import com.back.domain.chat.service.ChatService;
 import com.back.global.security.SecurityUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -15,18 +16,16 @@ import org.springframework.stereotype.Controller;
 @RequiredArgsConstructor
 public class ChatWebSocketController {
     private final ChatService chatService;
+    private final SimpMessagingTemplate simpMessagingTemplate;
 
-    @MessageMapping("/chat.sendMessage")
+    @MessageMapping("/chat/{chatRoomId}")
     public void sendMessage(
+            @DestinationVariable String chatRoomId,
             @Payload SendChatMessageDto body,
-            @AuthenticationPrincipal SecurityUser securityUser,
-            SimpMessagingTemplate simpMessagingTemplate
+            @AuthenticationPrincipal SecurityUser securityUser
     ) {
         ChatMessageDto chatMessageDto = chatService.saveMessage(body, securityUser.getId());
 
-        simpMessagingTemplate.convertAndSend(
-                "/topic/chatroom/" + body.chatRoomId(),
-                chatMessageDto
-        );
+        simpMessagingTemplate.convertAndSend("/sub/chat/" + chatRoomId, chatMessageDto);
     }
 }
