@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
@@ -44,4 +45,28 @@ public class S3Uploader {
         }
     }
 
+    public void delete(String fileUrl) {
+        try {
+            String key = extractKey(fileUrl);
+
+            DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build();
+
+            s3.deleteObject(deleteObjectRequest);
+
+        } catch (Exception e) {
+            throw new ServiceException(HttpStatus.INTERNAL_SERVER_ERROR, "이미지 삭제 실패");
+        }
+    }
+
+    private String extractKey(String url) {
+        int idx = url.indexOf(".com/");
+        if (idx == -1) {
+            throw new ServiceException(HttpStatus.INTERNAL_SERVER_ERROR, "S3 URL 형식 오류");
+        }
+        return url.substring(idx + 5); // ".com/" 이후부터 추출
+    }
+    
 }

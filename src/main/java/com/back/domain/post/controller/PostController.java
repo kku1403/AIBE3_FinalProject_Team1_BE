@@ -7,7 +7,6 @@ import com.back.domain.post.dto.res.PostDetailResBody;
 import com.back.domain.post.dto.res.PostListResBody;
 import com.back.domain.post.service.PostService;
 import com.back.global.rsData.RsData;
-import com.back.global.s3.S3Uploader;
 import com.back.global.security.SecurityUser;
 import com.back.standard.util.page.PagePayload;
 import jakarta.validation.Valid;
@@ -17,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -30,30 +30,19 @@ import java.util.List;
 public class PostController implements PostApi {
 
     private final PostService postService;
-    private final S3Uploader s3Uploader;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<RsData<PostCreateResBody>> createPost(
-            @Valid @RequestBody PostCreateReqBody reqBody,
-            @AuthenticationPrincipal SecurityUser user) {
-        PostCreateResBody body = this.postService.createPost(reqBody, user.getId());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(new RsData<>(HttpStatus.CREATED, "게시글이 생성되었습니다.", body));
-    }
-
-    @PostMapping("/images")
-    public ResponseEntity<RsData<List<String>>> uploadImages(
-            @RequestPart("images") List<MultipartFile> images
+            @Valid @RequestPart("request") PostCreateReqBody reqBody,
+            @RequestPart(value = "file", required = false) List<MultipartFile> files,
+            @AuthenticationPrincipal SecurityUser user
     ) {
         
-        List<String> imageUrls = images.stream()
-                .map(s3Uploader::upload)
-                .toList();
+        PostCreateResBody body = this.postService.createPost(reqBody, files, user.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new RsData<>(HttpStatus.CREATED, "이미지 업로드 성공", imageUrls));
+                .body(new RsData<>(HttpStatus.CREATED, "게시글이 생성되었습니다.", body));
     }
-
 
     @GetMapping
     public ResponseEntity<RsData<PagePayload<PostListResBody>>> getPostList(
@@ -107,10 +96,11 @@ public class PostController implements PostApi {
     @PutMapping("/{id}")
     public ResponseEntity<RsData<Void>> updatePost(
             @PathVariable Long id,
-            @Valid @RequestBody PostUpdateReqBody reqBody,
+            @Valid @RequestPart("request") PostUpdateReqBody reqBody,
+            @RequestPart(value = "file", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal SecurityUser user) {
 
-        postService.updatePost(id, reqBody, user.getId());
+        postService.updatePost(id, reqBody, files, user.getId());
 
         return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "게시글이 수정되었습니다."));
     }

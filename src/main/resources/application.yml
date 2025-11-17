@@ -29,6 +29,10 @@ spring:
       port: ${SPRING__REDIS__PORT}
       timeout: 10000
       password: ${SPRING__REDIS__PASSWORD}
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 30MB
 springdoc:
   default-produces-media-type: application/json;charset=UTF-8
 logging:
