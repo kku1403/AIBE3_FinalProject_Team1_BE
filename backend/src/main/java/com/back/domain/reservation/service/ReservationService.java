@@ -52,6 +52,11 @@ public class ReservationService {
         // 같은 게스트의 중복 예약 체크 (게시글 ID 필요)
         validateNoDuplicateReservation(post.getId(), author.getId());
 
+        // 자신의 게시글에 대한 예약 금지
+        if (post.getAuthor().getId().equals(author.getId())) {
+            throw new ServiceException(HttpStatus.BAD_REQUEST, "자신의 게시글에 대한 예약은 불가능합니다.");
+        }
+
         // 전달 방식 유효성 체크
         validateDeliveryMethods(post, reqBody.receiveMethod(), reqBody.returnMethod());
 
