@@ -4,10 +4,6 @@ import com.back.domain.review.entity.Review;
 import com.back.domain.review.repository.ReviewQueryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -35,17 +31,10 @@ public class ReviewSummaryService {
                                     .map(Review::getComment)
                                     .collect(Collectors.joining("\n"));
 
-        Prompt prompt = createPrompt(reviewsText);
-
-        return chatClient.prompt(prompt).call().content();
-    }
-
-    private Prompt createPrompt(String reviewsText) {
-        PromptTemplate promptTemplate = new PromptTemplate(reviewSummaryPrompt);
-        promptTemplate.add("reviewsText", reviewsText);
-
-        Message systemMessage = new SystemMessage(promptTemplate.create().getContents());
-
-        return new Prompt(List.of(systemMessage));
+        return chatClient.prompt()
+                         .system(reviewSummaryPrompt)
+                         .user("후기:\n" + reviewsText)
+                         .call()
+                         .content();
     }
 }
