@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.document.Document;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,6 +23,9 @@ public class PostSearchService {
     private final PostRepository postRepository;
     private final PostFavoriteRepository postfavoriteRepository;
     private final ChatClient chatClient;
+
+    @Value("${custom.ai.rag-llm-answer-prompt}")
+    private String ragPrompt;
 
     public List<PostListResBody> searchPosts(String query, Long memberId) {
 
@@ -60,15 +64,15 @@ public class PostSearchService {
                 .collect(Collectors.joining("\n\n"));
 
         String prompt = """
-                질문:
                 %s
                 
-                아래는 관련 게시글 정보들이야.
-                이 정보들을 참고해서 자연스럽고 정확하게 답변해줘.
-                
-                -------------------------
+                ---------------------
+                [사용자 질문]
                 %s
-                """.formatted(query, context);
+                
+                [관련 게시글 정보]
+                %s
+                """.formatted(ragPrompt, query, context);
 
         return chatClient.prompt(prompt)
                 .options(ChatOptions.builder()
