@@ -30,6 +30,8 @@ services:
     command: redis-server --requirepass ${SPRING__REDIS__PASSWORD}
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data:/data
     networks:
       - chwimeet-network
     healthcheck:
