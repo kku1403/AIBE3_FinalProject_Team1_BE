@@ -6,7 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.profiles.active=test")
 @ActiveProfiles("test")
 @Import(TestConfig.class)
 class BackApplicationTests {

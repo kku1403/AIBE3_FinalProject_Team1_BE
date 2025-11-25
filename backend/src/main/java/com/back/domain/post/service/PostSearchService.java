@@ -55,7 +55,8 @@ public class PostSearchService {
 
     public String searchWithLLM(String query) {
 
-        List<Document> docs = postVectorService.searchDocuments(query, 5);
+        List<Document> docs = postVectorService.searchDocuments(query, 3);
+
 
         String context = docs.stream()
                 .map(Document::getText)
