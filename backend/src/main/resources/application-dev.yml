@@ -1,7 +1,7 @@
 spring:
   datasource:
-    url: jdbc:mariadb://localhost:3307/chwimeet?currentSchema=chwimeet
-    username: root
+    url: ${SPRING__DATASOURCE__URL}
+    username: ${SPRING__DATASOURCE__USERNAME}
     password: ${SPRING__DATASOURCE__PASSWORD}
     driver-class-name: org.mariadb.jdbc.Driver
 

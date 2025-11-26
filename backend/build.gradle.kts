@@ -42,6 +42,7 @@ dependencies {
     runtimeOnly("org.mariadb.jdbc:mariadb-java-client:3.3.3")
     runtimeOnly("com.h2database:h2")
     runtimeOnly("com.mysql:mysql-connector-j")
+    runtimeOnly("org.mariadb.jdbc:mariadb-java-client")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
@@ -70,6 +71,9 @@ dependencies {
 
     // STMP
     implementation("org.springframework.boot:spring-boot-starter-mail")
+
+    // OAUTH2
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 }
 
 val querydslSrcDir = "src/main/generated"
