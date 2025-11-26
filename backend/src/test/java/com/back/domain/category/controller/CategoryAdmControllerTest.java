@@ -1,6 +1,7 @@
 
 package com.back.domain.category.controller;
 
+import com.back.config.TestConfig;
 import com.back.domain.category.dto.CategoryCreateReqBody;
 import com.back.domain.category.dto.CategoryResBody;
 import com.back.domain.category.dto.CategoryUpdateReqBody;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
@@ -36,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @SpringBootTest
+@Import(TestConfig.class)
 @AutoConfigureMockMvc
 @Transactional
 class CategoryAdmControllerTest {

@@ -1,5 +1,6 @@
 package com.back.domain.chat.controller;
 
+import com.back.config.TestConfig;
 import com.back.domain.category.entity.Category;
 import com.back.domain.category.repository.CategoryRepository;
 import com.back.domain.chat.dto.CreateChatRoomReqBody;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.TestExecutionEvent;
 import org.springframework.security.test.context.support.WithUserDetails;
@@ -36,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @SpringBootTest
+@Import(TestConfig.class)
 @AutoConfigureMockMvc
 @Transactional
 class ChatControllerTest {

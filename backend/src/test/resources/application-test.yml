@@ -1,0 +1,8 @@
+spring:
+  autoconfigure:
+    exclude: org.springframework.ai.vectorstore.mariadb.autoconfigure.MariaDbStoreAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:

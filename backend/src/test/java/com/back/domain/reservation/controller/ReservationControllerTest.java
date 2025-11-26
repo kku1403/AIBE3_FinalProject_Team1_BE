@@ -1,5 +1,6 @@
 package com.back.domain.reservation.controller;
 
+import com.back.config.TestConfig;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.service.AuthTokenService;
 import com.back.domain.member.service.MemberService;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,7 +32,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @SpringBootTest
+@Import(TestConfig.class)
 @AutoConfigureMockMvc
 @Transactional
 class ReservationControllerTest {
@@ -475,7 +477,7 @@ class ReservationControllerTest {
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 List.of(),
-                List.of(new ReservationLogDto(1L, ReservationStatus.PENDING_APPROVAL, LocalDateTime.now())),
+                List.of(new ReservationLogDto(1L, ReservationStatus.PENDING_APPROVAL, LocalDateTime.now(), "테스트 유저")),
                 50000
         );
 

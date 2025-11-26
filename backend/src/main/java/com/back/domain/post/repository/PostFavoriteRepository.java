@@ -8,6 +8,8 @@ import java.util.Optional;
 
 @Repository
 public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Long> {
-    Optional<PostFavorite> findByMemberIdAndPostId(Long postId, long memberId);
+    Optional<PostFavorite> findByMemberIdAndPostId(Long memberId, Long PostId);
+
+    boolean existsByMemberIdAndPostId(Long memberId, Long postId);
 
 }

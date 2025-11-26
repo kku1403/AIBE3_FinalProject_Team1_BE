@@ -1,5 +1,6 @@
 package com.back.domain.report.controller;
 
+import com.back.config.TestConfig;
 import com.back.domain.member.service.AuthTokenService;
 import com.back.domain.member.service.RefreshTokenStore;
 import com.back.domain.report.common.ReportType;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -40,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ActiveProfiles("test")
 @SpringBootTest
+@Import(TestConfig.class)
 @AutoConfigureMockMvc
 @Transactional
 class ReportControllerTest {

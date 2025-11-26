@@ -8,6 +8,7 @@ import com.back.domain.post.dto.req.PostCreateReqBody;
 import com.back.domain.post.dto.req.PostUpdateReqBody;
 import com.back.domain.post.dto.res.PostCreateResBody;
 import com.back.domain.post.dto.res.PostDetailResBody;
+import com.back.domain.post.dto.res.PostImageResBody;
 import com.back.domain.post.dto.res.PostListResBody;
 import com.back.domain.post.entity.*;
 import com.back.domain.post.repository.*;
@@ -40,6 +41,7 @@ public class PostService {
     private final PostFavoriteRepository postFavoriteRepository;
     private final PostQueryRepository postQueryRepository;
     private final PostFavoriteQueryRepository postFavoriteQueryRepository;
+    private final PostVectorService postVectorService;
     private final S3Uploader s3;
 
     private final RegionRepository regionRepository;
@@ -102,6 +104,8 @@ public class PostService {
 
         this.postRepository.save(post);
 
+        postVectorService.indexPost(post);
+
         return PostCreateResBody.of(post);
     }
 
@@ -117,7 +121,13 @@ public class PostService {
 
             boolean isFavorite = memberId != null && !post.getAuthor().getId().equals(memberId) && this.postFavoriteRepository.findByMemberIdAndPostId(memberId, post.getId()).isPresent();
 
-            return PostListResBody.of(post, isFavorite);
+            String thumbnail = post.getImages().stream()
+                    .filter(img -> img.getIsPrimary())
+                    .findFirst()
+                    .map(img -> s3.generatePresignedUrl(img.getImageUrl()))
+                    .orElse(null);
+
+            return PostListResBody.of(post, isFavorite, thumbnail);
         });
 
         return PageUt.of(mappedPage);
@@ -135,13 +145,25 @@ public class PostService {
                     .isPresent();
         }
 
-        List<LocalDateTime> reservedDates = postQueryRepository.findReservedDatesFromToday(postId);
+        List<PostImageResBody> images = post.getImages().stream()
+                .map(img -> PostImageResBody.of(img, s3.generatePresignedUrl(img.getImageUrl())))
+                .toList();
 
-        return PostDetailResBody.of(post, isFavorite, reservedDates);
+        return PostDetailResBody.of(post, isFavorite, images);
     }
 
     public PagePayload<PostListResBody> getMyPosts(Long memberId, Pageable pageable) {
-        Page<PostListResBody> result = this.postQueryRepository.findMyPost(memberId, pageable).map(p -> PostListResBody.of(p, false));
+        Page<PostListResBody> result = this.postQueryRepository.findMyPost(memberId, pageable)
+                .map(post -> {
+
+                    String thumbnail = post.getImages().stream()
+                            .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
+                            .findFirst()
+                            .map(img -> s3.generatePresignedUrl(img.getImageUrl()))
+                            .orElse(null);
+
+                    return PostListResBody.of(post, false, thumbnail);
+                });
 
         return PageUt.of(result);
     }
@@ -176,7 +198,18 @@ public class PostService {
 
         Page<PostFavorite> favorites = this.postFavoriteQueryRepository.findFavoritePosts(memberId, pageable);
 
-        Page<PostListResBody> result = favorites.map(f -> PostListResBody.of(f.getPost(), true));
+        Page<PostListResBody> result = favorites.map(fav -> {
+
+            Post post = fav.getPost();
+
+            String thumbnail = post.getImages().stream()
+                    .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
+                    .findFirst()
+                    .map(img -> s3.generatePresignedUrl(img.getImageUrl()))
+                    .orElse(null);
+
+            return PostListResBody.of(post, true, thumbnail);
+        });
 
         return PageUt.of(result);
 
@@ -255,6 +288,8 @@ public class PostService {
                 .toList();
 
         post.resetPostRegions(newPostRegions);
+
+        postVectorService.indexPost(post);
     }
 
 
@@ -280,4 +315,7 @@ public class PostService {
         this.postRepository.delete(post);
     }
 
+    public List<LocalDateTime> getReservedDates(Long id) {
+        return postQueryRepository.findReservedDatesFromToday(id);
+    }
 }

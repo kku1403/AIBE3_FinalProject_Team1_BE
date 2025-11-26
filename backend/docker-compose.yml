@@ -40,6 +40,31 @@ services:
       timeout: 5s
       retries: 5
 
+  mariadb:
+    image: mariadb:11.7
+    container_name: chwimeet-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: ${SPRING__DATASOURCE__PASSWORD}
+      MARIADB_DATABASE: chwimeet
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+09:00
+    ports:
+      - "3307:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    networks:
+      - chwimeet-network
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-uroot", "-p${SPRING__DATASOURCE__PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+
   # 선택: Spring Boot 애플리케이션도 Docker Compose로 실행
   # 사용: docker compose --profile full up
   app:
@@ -82,6 +107,8 @@ volumes:
   mysql-data:
     driver: local
   redis-data:
+    driver: local
+  mariadb-data:
     driver: local
 
 networks:

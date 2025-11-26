@@ -5,6 +5,7 @@ import com.back.domain.post.dto.req.PostUpdateReqBody;
 import com.back.domain.post.dto.res.PostCreateResBody;
 import com.back.domain.post.dto.res.PostDetailResBody;
 import com.back.domain.post.dto.res.PostListResBody;
+import com.back.domain.post.service.PostSearchService;
 import com.back.domain.post.service.PostService;
 import com.back.domain.review.service.ReviewSummaryService;
 import com.back.global.rsData.RsData;
@@ -23,7 +24,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/posts")
@@ -32,6 +35,7 @@ public class PostController implements PostApi {
 
     private final PostService postService;
     private final ReviewSummaryService reviewSummaryService;
+    private final PostSearchService postSearchService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<RsData<PostCreateResBody>> createPost(
@@ -39,7 +43,7 @@ public class PostController implements PostApi {
             @RequestPart(value = "file", required = false) List<MultipartFile> files,
             @AuthenticationPrincipal SecurityUser user
     ) {
-        
+
         PostCreateResBody body = this.postService.createPost(reqBody, files, user.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -67,6 +71,15 @@ public class PostController implements PostApi {
         Long memberId = (user != null) ? user.getId() : null;
 
         PostDetailResBody body = this.postService.getPostById(id, memberId);
+
+        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "성공", body));
+    }
+
+    @GetMapping("/{id}/reserved-dates")
+    public ResponseEntity<RsData<List<LocalDateTime>>> getReservedDates(
+            @PathVariable Long id
+    ) {
+        List<LocalDateTime> body = this.postService.getReservedDates(id);
 
         return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "성공", body));
     }
@@ -125,5 +138,28 @@ public class PostController implements PostApi {
         String body = reviewSummaryService.summarizeReviews(id);
 
         return ResponseEntity.ok(new RsData<>(HttpStatus.OK, HttpStatus.OK.name(), body));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchPosts(
+            @RequestParam String query,
+            @AuthenticationPrincipal SecurityUser user
+    ) {
+
+        Long memberId = (user != null ? user.getId() : null);
+
+        List<PostListResBody> result = postSearchService.searchPosts(query, memberId);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/search/LLM")
+    public ResponseEntity<?> searchPosts(@RequestParam String query) {
+        String answer = postSearchService.searchWithLLM(query);
+
+        return ResponseEntity.ok(Map.of(
+                "query", query,
+                "answer", answer
+        ));
     }
 }
