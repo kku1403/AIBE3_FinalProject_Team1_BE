@@ -3,6 +3,8 @@ package com.back.domain.reservation.service;
 
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import com.back.domain.notification.common.NotificationType;
+import com.back.domain.notification.service.NotificationService;
 import com.back.domain.post.common.ReceiveMethod;
 import com.back.domain.post.common.ReturnMethod;
 import com.back.domain.post.entity.Post;
@@ -49,6 +51,7 @@ public class ReservationService {
     private final S3Uploader s3;
 
     private final ReservationRemindScheduler reminderScheduler;
+    private final NotificationService notificationService;
 
     public ReservationDto create(CreateReservationReqBody reqBody, Member author) {
         Post post = postService.getById(reqBody.postId());
@@ -99,12 +102,6 @@ public class ReservationService {
         }
 
         Reservation r = reservationRepository.save(reservation);
-
-        // 스케줄러에 등록
-        reminderScheduler.scheduleReturnReminder(
-                r.getId(),
-                r.getReservationEndAt()
-        );
 
         return convertToReservationDto(r);
     }
@@ -342,8 +339,10 @@ public class ReservationService {
                 .orElseThrow(() -> new ServiceException(HttpStatus.NOT_FOUND, "해당 예약을 찾을 수 없습니다."));
 
         // 역할 확인
-        boolean isGuest = reservation.getAuthor().getId().equals(memberId);
-        boolean isHost = reservation.getPost().getAuthor().getId().equals(memberId);
+        Long guestId = reservation.getAuthor().getId();
+        Long hostId = reservation.getPost().getAuthor().getId();
+        boolean isGuest = guestId.equals(memberId);
+        boolean isHost = hostId.equals(memberId);
 
         if (!isGuest && !isHost) {
             throw new ServiceException(HttpStatus.FORBIDDEN, "해당 예약의 상태를 변경할 권한이 없습니다.");
@@ -377,11 +376,19 @@ public class ReservationService {
                 }
             }
 
+            case RENTING -> {
+                // 대여 시작 시 스케줄러에 반납 리마인드 job 등록
+                reminderScheduler.scheduleReturnReminder(
+                    reservation.getId(),
+                    reservation.getReservationEndAt()
+                );
+                reservation.changeStatus(reqBody.status());
+            }
+
             // 단순 상태 전환 (명시적으로 나열)
             case PENDING_PAYMENT,
                  PENDING_PICKUP,
                  INSPECTING_RENTAL,
-                 RENTING,
                  RETURN_COMPLETED,
                  INSPECTING_RETURN,
                  PENDING_REFUND,
@@ -398,6 +405,14 @@ public class ReservationService {
         // 상태 전환 로그 저장
         ReservationLog log = new ReservationLog(reservation.getStatus(), reservation, memberId);
         reservationLogRepository.save(log);
+
+        // 알림 발행
+        NotificationType notificationType = NotificationType.reservationStatusToNotificationType(reqBody.status());
+        if (isGuest) {
+            notificationService.saveAndSendNotification(hostId, notificationType, reservationId);
+        } else {
+            notificationService.saveAndSendNotification(guestId, notificationType, reservationId);
+        }
 
         return convertToReservationDto(r);
     }

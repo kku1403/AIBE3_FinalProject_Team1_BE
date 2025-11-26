@@ -114,7 +114,7 @@ public class NotificationService {
         sendNotification(targetMemberId, dto);
     }
 
-    public void sendNotification(Long targetMemberId, NotificationResBody<? extends NotificationData> message) {
+    private void sendNotification(Long targetMemberId, NotificationResBody<? extends NotificationData> message) {
         Map<String, SseEmitter> emitters = emitterRepository.findEmittersByMemberId(targetMemberId);
 
         emitters.forEach((emitterId, emitter) -> {

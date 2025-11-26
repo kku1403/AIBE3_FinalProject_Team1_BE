@@ -13,8 +13,13 @@ public class QuartzUt {
         return reminderDate.atTime(10, 0);
     }
 
-    // 예약 생성 후 10초 뒤 (테스트 용)
+    // 예약 생성 10초 뒤 (테스트용)
     public static LocalDateTime after10Seconds(LocalDateTime createdAt) {
         return createdAt.plusSeconds(10);
+    }
+
+    // 예약 생성 10초 전 (테스트용)
+    public static LocalDateTime before10Seconds(LocalDateTime createdAt) {
+        return createdAt.minusSeconds(10);
     }
 }

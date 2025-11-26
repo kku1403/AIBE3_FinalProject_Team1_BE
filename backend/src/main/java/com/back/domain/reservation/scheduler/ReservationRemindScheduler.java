@@ -20,6 +20,8 @@ public class ReservationRemindScheduler {
 
     public void scheduleReturnReminder(Long reservationId, LocalDateTime reservationEndAt) {
 
+        log.info("[SCHEDULER] 반납 리마인더 스케줄링 요청 - reservationId: {}", reservationId);
+
         JobDetail jobDetail = JobBuilder.newJob(ReservationReturnRemindJob.class)
                 .withIdentity("returnReminderJob-" + reservationId)
                 .usingJobData("reservationId", reservationId)
@@ -27,19 +29,27 @@ public class ReservationRemindScheduler {
 
         LocalDateTime runAt = QuartzUt.reminderAt10AmOneDayBefore(reservationEndAt);
 
+        if (runAt.isBefore(LocalDateTime.now())) {
+            log.warn("알림 시간이 과거입니다 - 1분 뒤 실행으로 변경 - reservationId: {}, runAt: {}",
+                    reservationId, runAt);
+            runAt = LocalDateTime.now().plusMinutes(1);
+        }
+
         Date runDate = Date.from(runAt.atZone(ZoneId.systemDefault()).toInstant());
 
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("returnReminderTrigger-" + reservationId)
                 .startAt(runDate)
+                .withSchedule(SimpleScheduleBuilder.simpleSchedule()
+                        .withMisfireHandlingInstructionFireNow())
                 .forJob(jobDetail)
                 .build();
 
         try {
             scheduler.scheduleJob(jobDetail, trigger);
-            log.info("반납 리마인더 스케줄링 완료 - reservationId: {}, runAt: {}", reservationId, runAt);
+            log.info("[SCHEDULER] 반납 리마인더 스케줄링 완료 - reservationId: {}, runAt: {}", reservationId, runAt);
         } catch (SchedulerException e) {
-            log.error("반납 리마인더 스케줄링 실패 - reservationId: {}, runAt: {}", reservationId, runAt, e);
+            log.error("[SCHEDULER] 반납 리마인더 스케줄링 실패 - reservationId: {}, runAt: {}", reservationId, runAt, e);
         }
     }
 }

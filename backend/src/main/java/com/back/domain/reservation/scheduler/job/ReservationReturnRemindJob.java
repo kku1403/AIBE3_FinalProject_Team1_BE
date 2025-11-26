@@ -2,15 +2,18 @@ package com.back.domain.reservation.scheduler.job;
 
 import com.back.domain.notification.common.NotificationType;
 import com.back.domain.notification.service.NotificationService;
+import com.back.domain.reservation.common.ReservationStatus;
 import com.back.domain.reservation.entity.Reservation;
 import com.back.domain.reservation.repository.ReservationQueryRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.quartz.DisallowConcurrentExecution;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
+@DisallowConcurrentExecution
 public class ReservationReturnRemindJob implements Job {
 
     @Autowired
@@ -29,6 +32,12 @@ public class ReservationReturnRemindJob implements Job {
 
         if (reservation == null) {
             log.warn("예약 정보를 찾을 수 없음 - reservationId: {}", reservationId);
+            return;
+        }
+
+        if (reservation.getStatus() != ReservationStatus.RENTING) {
+            log.info("RENTING 상태 아님 - 알림 스킵 - reservationId: {}, status: {}",
+                    reservationId, reservation.getStatus());
             return;
         }
 
