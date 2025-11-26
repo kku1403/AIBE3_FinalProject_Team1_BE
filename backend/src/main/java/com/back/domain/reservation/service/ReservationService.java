@@ -3,6 +3,8 @@ package com.back.domain.reservation.service;
 
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
+import com.back.domain.notification.common.NotificationType;
+import com.back.domain.notification.service.NotificationService;
 import com.back.domain.post.common.ReceiveMethod;
 import com.back.domain.post.common.ReturnMethod;
 import com.back.domain.post.entity.Post;
@@ -46,6 +48,7 @@ public class ReservationService {
     private final S3Uploader s3;
 
     private final ReservationRemindScheduler reminderScheduler;
+    private final NotificationService notificationService;
 
     public ReservationDto create(CreateReservationReqBody reqBody, Member author) {
         Post post = postService.getById(reqBody.postId());
@@ -96,6 +99,8 @@ public class ReservationService {
         }
 
         Reservation r = reservationRepository.save(reservation);
+
+        notificationService.saveAndSendNotification(post.getAuthor().getId(), NotificationType.RESERVATION_PENDING_APPROVAL, r.getId());
 
         // 스케줄러에 등록
         reminderScheduler.scheduleReturnReminder(
