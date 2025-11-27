@@ -36,6 +36,7 @@ dependencies {
     implementation("org.springframework.ai:spring-ai-openai")               // Embedding
     implementation("org.springframework.ai:spring-ai-rag")
     implementation("org.springframework.ai:spring-ai-starter-vector-store-mariadb")
+    implementation("org.springframework.ai:spring-ai-starter-mcp-server-webmvc")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.projectlombok:lombok")
