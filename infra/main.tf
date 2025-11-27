@@ -347,6 +347,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - TZ=Asia/Seoul
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=$${SPRING__DATASOURCE__URL}
       - SPRING_DATASOURCE_USERNAME=$${SPRING__DATASOURCE__USERNAME}
@@ -381,6 +382,7 @@ services:
     ports:
       - "8081:8080"
     environment:
+      - TZ=Asia/Seoul
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATASOURCE_URL=$${SPRING__DATASOURCE__URL}
       - SPRING_DATASOURCE_USERNAME=$${SPRING__DATASOURCE__USERNAME}
