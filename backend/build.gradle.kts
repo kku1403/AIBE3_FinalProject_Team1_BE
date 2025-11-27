@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     jacoco
 }
-val springAiVersion by extra("1.0.3")
+val springAiVersion by extra("1.1.0")
 
 group = "com"
 version = "0.0.1-SNAPSHOT"
