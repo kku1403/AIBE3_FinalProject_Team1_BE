@@ -1,8 +1,10 @@
 package com.back.domain.report.service;
 
 import com.back.domain.member.entity.Member;
+import com.back.domain.member.repository.MemberQueryRepository;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.domain.post.entity.Post;
+import com.back.domain.post.repository.PostQueryRepository;
 import com.back.domain.post.repository.PostRepository;
 import com.back.domain.report.common.ReportType;
 import com.back.domain.report.common.validator.ReportValidator;
@@ -12,6 +14,7 @@ import com.back.domain.report.entity.Report;
 import com.back.domain.report.repository.ReportQueryRepository;
 import com.back.domain.report.repository.ReportRepository;
 import com.back.domain.review.entity.Review;
+import com.back.domain.review.repository.ReviewQueryRepository;
 import com.back.domain.review.repository.ReviewRepository;
 import com.back.global.exception.ServiceException;
 import com.back.standard.util.page.PagePayload;
@@ -37,8 +40,9 @@ public class ReportService {
     private final ReportValidator reportValidator;
     private final ReportRepository reportRepository;
     private final MemberRepository memberRepository;
-    private final PostRepository postRepository;
-    private final ReviewRepository reviewRepository;
+    private final MemberQueryRepository memberQueryRepository;
+    private final PostQueryRepository postQueryRepository;
+    private final ReviewQueryRepository reviewQueryRepository;
     private final ReportQueryRepository reportQueryRepository;
 
     @Transactional
@@ -115,72 +119,23 @@ public class ReportService {
     }
 
     private int banPosts(List<Long> postIds, Map<Long, List<Report>> targetReports) {
-        // IN 쿼리로 일괄 조회 (N+1 방지)
-        List<Post> posts = postRepository.findAllById(postIds);
-
-        int bannedCount = 0;
-        for (Post post : posts) {
-            if (!post.getIsBanned()) {
-                post.ban();
-                bannedCount++;
-
-                List<Report> reports = targetReports.get(post.getId());
-                log.info("POST banned - ID: {}, Report count: {}",
-                        post.getId(), reports.size());
-            }
-        }
-
-        // 일괄 저장
-//        if (bannedCount > 0) {
-//            postRepository.saveAll(posts);
-//        }
-
-        return bannedCount;
+        long bannedCount = postQueryRepository.bulkBanPosts(postIds);
+        // 총 처리 건수 로깅만 가능
+        log.info("게시글 제재 처리 완료! 총 개수: {}", bannedCount);
+        return (int) bannedCount;
     }
 
     private int banMembers(List<Long> memberIds, Map<Long, List<Report>> targetReports) {
-        // IN 쿼리로 일괄 조회
-        List<Member> members = memberRepository.findAllById(memberIds);
-
-        int bannedCount = 0;
-        for (Member member : members) {
-            if (!member.isBanned()) {
-                member.ban();
-                bannedCount++;
-
-                List<Report> reports = targetReports.get(member.getId());
-                log.info("MEMBER banned - ID: {}, Report count: {}",
-                        member.getId(), reports.size());
-            }
-        }
-
-//        if (bannedCount > 0) {
-//            memberRepository.saveAll(members);
-//        }
-
-        return bannedCount;
+        long bannedCount = memberQueryRepository.bulkBanMember(memberIds);
+        // 총 처리 건수 로깅만 가능
+        log.info("사용자 제재 처리 완료! 총 개수: {}", bannedCount);
+        return (int) bannedCount;
     }
 
     private int banReviews(List<Long> reviewIds, Map<Long, List<Report>> targetReports) {
-        // IN 쿼리로 일괄 조회
-        List<Review> reviews = reviewRepository.findAllById(reviewIds);
-
-        int bannedCount = 0;
-        for (Review review : reviews) {
-            if (!review.isBanned()) {
-                review.ban();
-                bannedCount++;
-
-                List<Report> reports = targetReports.get(review.getId());
-                log.info("REVIEW banned - ID: {}, Report count: {}",
-                        review.getId(), reports.size());
-            }
-        }
-
-//        if (bannedCount > 0) {
-//            reviewRepository.saveAll(reviews);
-//        }
-
-        return bannedCount;
+        long bannedCount = reviewQueryRepository.bulkBanReview(reviewIds);
+        // 총 처리 건수 로깅만 가능
+        log.info("리뷰 제재 처리 완료! 총 개수: {}", bannedCount);
+        return (int) bannedCount;
     }
 }
