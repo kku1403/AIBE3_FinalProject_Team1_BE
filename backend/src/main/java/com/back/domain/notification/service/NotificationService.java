@@ -12,6 +12,8 @@ import com.back.domain.notification.repository.NotificationQueryRepository;
 import com.back.domain.notification.repository.NotificationRepository;
 import com.back.domain.reservation.entity.Reservation;
 import com.back.domain.reservation.repository.ReservationQueryRepository;
+import com.back.domain.review.entity.Review;
+import com.back.domain.review.repository.ReviewQueryRepository;
 import com.back.global.exception.ServiceException;
 import com.back.global.sse.EmitterRepository;
 import com.back.standard.util.page.PagePayload;
@@ -25,6 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,6 +42,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationQueryRepository notificationQueryRepository;
     private final ReservationQueryRepository reservationQueryRepository;
+    private final ReviewQueryRepository reviewQueryRepository;
     private final List<NotificationDataMapper<? extends NotificationData>> mappers;
     private final Map<NotificationType.GroupType, Function<List<Long>, Map<Long, ?>>> batchLoaders = new HashMap<>();
     private final EmitterRepository emitterRepository;
@@ -48,6 +53,7 @@ public class NotificationService {
             NotificationRepository notificationRepository,
             NotificationQueryRepository notificationQueryRepository,
             ReservationQueryRepository reservationQueryRepository,
+            ReviewQueryRepository reviewQueryRepository,
             List<NotificationDataMapper<? extends NotificationData>> mappers,
             EmitterRepository emitterRepository
     ) {
@@ -55,6 +61,7 @@ public class NotificationService {
         this.notificationRepository = notificationRepository;
         this.notificationQueryRepository = notificationQueryRepository;
         this.reservationQueryRepository = reservationQueryRepository;
+        this.reviewQueryRepository = reviewQueryRepository;
         this.mappers = mappers;
         this.emitterRepository = emitterRepository;
         setBatchLoaders();
@@ -64,6 +71,10 @@ public class NotificationService {
         batchLoaders.put(NotificationType.GroupType.RESERVATION, targetIds ->
                 reservationQueryRepository.findWithPostAndAuthorByIds(targetIds)
                         .stream().collect(Collectors.toMap(Reservation::getId, r -> r))
+        );
+        batchLoaders.put(NotificationType.GroupType.REVIEW, targetIds ->
+                reviewQueryRepository.findWithReservationAndPostAndAuthorsByIds(targetIds)
+                        .stream().collect(Collectors.toMap(Review::getId, r -> r))
         );
     }
 
@@ -122,7 +133,16 @@ public class NotificationService {
                 emitter.send(SseEmitter.event()
                         .id(emitterId)
                         .data(message));
+                log.debug("알림 전송 성공: memberId={}, emitterId={}", targetMemberId, emitterId);
+            } catch (IOException e) {
+                // 클라이언트 연결 끊김 - 정상적인 상황
+                log.debug("클라이언트 연결 끊김 감지 (memberId={}, emitterId={}): {}",
+                        targetMemberId, emitterId, e.getMessage());
+                emitterRepository.deleteEmitter(targetMemberId, emitterId);
             } catch (Exception e) {
+                // 기타 예외 - 예상치 못한 에러
+                log.error("알림 전송 중 예외 발생 (memberId={}, emitterId={})",
+                        targetMemberId, emitterId, e);
                 emitterRepository.deleteEmitter(targetMemberId, emitterId);
             }
         });
@@ -215,6 +235,13 @@ public class NotificationService {
         Map<NotificationType.GroupType, Map<Long, ?>> loaded = loadEntitiesByGroup(List.of(notification));
         List<NotificationResBody<? extends NotificationData>> bodies = mapToResBody(List.of(notification), loaded);
         return bodies.get(0);
+    }
+
+    @Transactional
+    public int deleteOldNotifications() {
+        return notificationRepository.deleteOldReadNotifications(
+                LocalDateTime.now().minusDays(3)
+        );
     }
 }
 
