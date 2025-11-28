@@ -100,59 +100,32 @@ jobs:
           ./gradlew --version
           java -version
 
-      - name: Initialize database schema with JPA
+      - name: Initialize database schema with JPA entities
         env:
           SPRING__DATASOURCE__URL: jdbc:mariadb://localhost:3306/chwimeet?currentSchema=chwimeet
           SPRING__DATASOURCE__USERNAME: root
           SPRING__DATASOURCE__PASSWORD: ${{ secrets.DB_PASSWORD }}
-          SPRING__JPA__HIBERNATE__DDL_AUTO: update
+          SPRING__JPA__HIBERNATE__DDL_AUTO: create
+          SPRING__JPA__PROPERTIES__HIBERNATE__HBM2DDL__SCHEMA_GENERATION__SCRIPT__APPEND: false
         run: |
-          echo "=== Initializing DB Schema with JPA ==="
+          echo "=== Generating schema from JPA entities ==="
           
-          # 백그라운드로 Spring Boot 실행
-          ./gradlew bootRun --no-daemon > bootrun.log 2>&1 &
-          BOOT_PID=$!
+          # Hibernate SchemaExport를 사용해서 DDL 생성
+          cat > schema-gen.gradle.kts << 'EOF'
+          tasks.register("generateSchema") {
+              doLast {
+                  // Hibernate SchemaExport 실행
+                  val configuration = org.hibernate.cfg.Configuration()
           
-          # 애플리케이션이 시작될 때까지 대기 (최대 120초)
-          echo "Waiting for Spring Boot to start..."
-          STARTED=false
-          for i in {1..60}; do
-            if grep -q "Started" bootrun.log 2>/dev/null; then
-              echo "✅ Spring Boot started at iteration $i"
-              STARTED=true
-              sleep 10  # DDL 실행 완료를 위한 추가 대기
-              break
-            fi
-            echo "Waiting... ($i/60)"
-            sleep 2
-          done
+                  // Entity 클래스들을 스캔
+                  val sessionFactory = configuration.buildSessionFactory()
           
-          # 타임아웃 체크
-          if [ "$STARTED" = false ]; then
-            echo "❌ Spring Boot failed to start within 120 seconds"
-            echo "=== Boot Log (last 100 lines) ==="
-            tail -100 bootrun.log
-          fi
-          
-          # 프로세스 종료
-          kill $BOOT_PID 2>/dev/null || true
-          wait $BOOT_PID 2>/dev/null || true
-          
-          # 스키마 생성 확인
-          echo "=== Verifying schema ==="
-          TABLES=$(docker exec chwimeet-mariadb mariadb -uroot -p${{ secrets.DB_PASSWORD }} -sN -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='chwimeet'")
-          echo "Found $TABLES tables"
-          
-          if [ "$TABLES" -gt "0" ]; then
-            echo "=== Table list ==="
-            docker exec chwimeet-mariadb mariadb -uroot -p${{ secrets.DB_PASSWORD }} -e "USE chwimeet; SHOW TABLES;"
-            echo "✅ Schema initialized with $TABLES tables"
-          else
-            echo "❌ No tables found - Schema creation failed"
-            echo "=== Full Boot Log ==="
-            cat bootrun.log
-            exit 1
-          fi
+                  val schemaExport = org.hibernate.tool.hbm2ddl.SchemaExport(configuration)
+                  schemaExport.setOutputFile("schema.sql")
+                  schemaExport.create(true, false)
+              }
+          }
+          EOF
 
       - name: Generate JOOQ sources
         env:

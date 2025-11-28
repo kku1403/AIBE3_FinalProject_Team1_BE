@@ -101,6 +101,22 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+tasks.register("initSchema") {
+    doLast {
+        val dataSource = HikariDataSource(HikariConfig().apply {
+            jdbcUrl = System.getenv("SPRING__DATASOURCE__URL") ?: "jdbc:mariadb://localhost:3306/chwimeet"
+            username = System.getenv("SPRING__DATASOURCE__USERNAME") ?: "root"
+            password = System.getenv("SPRING__DATASOURCE__PASSWORD") ?: ""
+        })
+
+        // JPA 메타모델에서 DDL 생성
+        val emf = Persistence.createEntityManagerFactory("default")
+        // DDL 자동 실행됨 (spring.jpa.hibernate.ddl-auto=update)
+        emf.close()
+        dataSource.close()
+    }
+}
+
 jooq {
     version.set("3.19.26")
 
