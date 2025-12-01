@@ -83,25 +83,68 @@ jobs:
       # Docker Compose로 MariaDB & Redis 시작
       - name: Start MariaDB and Redis
         run: |
+          echo "🚀 Starting MariaDB and Redis..."
           docker compose up -d mariadb redis
           echo "⏳ Waiting for services to be ready..."
           sleep 10
 
+      - name: Verify containers are running
+        run: |
+          if ! docker ps | grep -q chwimeet-mariadb; then
+            echo "❌ MariaDB container is not running!"
+            docker compose logs mariadb
+            exit 1
+          fi
+          if ! docker ps | grep -q chwimeet-redis; then
+            echo "❌ Redis container is not running!"
+            docker compose logs redis
+            exit 1
+          fi
+          echo "✅ Both containers are running"
+
       - name: Wait for MariaDB
         run: |
-          until docker exec chwimeet-mariadb mariadb-admin ping -h localhost -uroot -p${{ secrets.DB_PASSWORD }} --silent; do
-            echo "Waiting for MariaDB..."
+          echo "⏳ Waiting for MariaDB to accept connections..."
+          
+          MAX_TRIES=30
+          COUNTER=0
+          
+          until docker exec chwimeet-mariadb mariadb-admin ping -h localhost -uroot -p${{ secrets.DB_PASSWORD }} --silent 2>/dev/null; do
+            COUNTER=$((COUNTER + 1))
+          
+            if [ $COUNTER -ge $MAX_TRIES ]; then
+              echo "❌ MariaDB failed to start after ${MAX_TRIES} attempts"
+              docker compose logs mariadb
+              exit 1
+            fi
+          
+            echo "Waiting for MariaDB... (${COUNTER}/${MAX_TRIES})"
             sleep 2
           done
-          echo "✅ MariaDB is ready"
+          
+          echo "✅ MariaDB is ready!"
 
       - name: Wait for Redis
         run: |
-          until docker exec chwimeet-redis redis-cli -a ${{ secrets.REDIS_PASSWORD }} ping | grep -q PONG; do
-            echo "Waiting for Redis..."
+          echo "⏳ Waiting for Redis to accept connections..."
+          
+          MAX_TRIES=30
+          COUNTER=0
+          
+          until docker exec chwimeet-redis redis-cli -a ${{ secrets.REDIS_PASSWORD }} ping 2>/dev/null | grep -q PONG; do
+            COUNTER=$((COUNTER + 1))
+          
+            if [ $COUNTER -ge $MAX_TRIES ]; then
+              echo "❌ Redis failed to start after ${MAX_TRIES} attempts"
+              docker compose logs redis
+              exit 1
+            fi
+          
+            echo "Waiting for Redis... (${COUNTER}/${MAX_TRIES})"
             sleep 2
           done
-          echo "✅ Redis is ready"
+          
+          echo "✅ Redis is ready!"
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew

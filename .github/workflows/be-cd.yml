@@ -81,28 +81,73 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
 
       # ========================================
-      # 🚀 CD는 항상 JOOQ 새로 생성 (캐시 없음)
-      # - 프로덕션 안전성 최우선: main 브랜치 SQL로만 생성
-      # - PR 캐시 영향 완전 차단: CI 캐시와 독립적
-      # - 테스트 환경: GitHub Actions Runner의 임시 MariaDB
+      # 🚀 CD 독립 실행: main branch 전용 (캐시 없음)
+      # - main 브랜치의 SQL만 사용하여 프로덕션 안전성 보장
+      # - CI와 완전히 분리: PR 캐시 영향 차단
+      # - 매번 JOOQ 새로 생성으로 CI 의존성 제거
+      # ========================================
+
+      # ========================================
+      # JOOQ 생성 (매번 실행)
+      # - GitHub Actions Runner의 임시 MariaDB 사용
+      # - main 브랜치의 SQL로만 생성 (프로덕션 DB와 무관)
       # ========================================
       - name: Start MariaDB
         run: |
+          echo "🚀 Starting MariaDB..."
+          echo "=== Environment check ==="
+          echo "DB_PASSWORD is set: ${{ secrets.DB_PASSWORD != '' }}"
+          
           docker compose up -d mariadb
           echo "⏳ Waiting for MariaDB to be ready..."
           sleep 10
+          
+          echo "=== Container status ==="
+          docker ps -a | grep mariadb || echo "No mariadb container found"
+          
+          echo "=== Recent logs ==="
+          docker compose logs --tail=20 mariadb || echo "No logs available"
+
+      - name: Verify MariaDB container is running
+        run: |
+          if ! docker ps | grep -q chwimeet-mariadb; then
+            echo "❌ MariaDB container is not running!"
+            echo "=== Docker compose logs ==="
+            docker compose logs mariadb
+            exit 1
+          fi
+          echo "✅ MariaDB container is running"
 
       - name: Wait for MariaDB
         env:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          until docker exec chwimeet-mariadb mariadb-admin ping -h localhost -uroot -p${DB_PASSWORD} --silent; do
-            echo "Waiting for MariaDB..."
+          echo "⏳ Waiting for MariaDB to accept connections..."
+          
+          MAX_TRIES=30
+          COUNTER=0
+          
+          until docker exec chwimeet-mariadb mariadb-admin ping -h localhost -uroot -p${DB_PASSWORD} --silent 2>/dev/null; do
+            COUNTER=$((COUNTER + 1))
+          
+            if [ $COUNTER -ge $MAX_TRIES ]; then
+              echo "❌ MariaDB failed to start after ${MAX_TRIES} attempts (60 seconds)"
+              echo "=== MariaDB logs ==="
+              docker compose logs mariadb
+              echo "=== Container status ==="
+              docker ps -a | grep mariadb
+              exit 1
+            fi
+          
+            echo "Waiting for MariaDB... (attempt ${COUNTER}/${MAX_TRIES})"
             sleep 2
           done
-          echo "✅ MariaDB is ready"
+          
+          echo "✅ MariaDB is ready!"
 
       - name: Generate JOOQ sources (always)
         env:
