@@ -1,22 +1,24 @@
 package com.back.domain.post.service;
 
-import com.back.domain.post.dto.res.PostListResBody;
-import com.back.domain.post.entity.Post;
-import com.back.domain.post.entity.PostImage;
-import com.back.domain.post.repository.PostFavoriteRepository;
-import com.back.domain.post.repository.PostRepository;
-import com.back.global.s3.S3Uploader;
-import lombok.RequiredArgsConstructor;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import com.back.domain.post.dto.res.PostListResBody;
+import com.back.domain.post.entity.Post;
+import com.back.domain.post.entity.PostImage;
+import com.back.domain.post.repository.PostFavoriteRepository;
+import com.back.domain.post.repository.PostRepository;
+import com.back.global.s3.S3Uploader;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +28,7 @@ public class PostSearchService {
 	private final PostRepository postRepository;
 	private final PostFavoriteRepository postfavoriteRepository;
 	private final ChatClient chatClient;
-    private final S3Uploader s3;
+	private final S3Uploader s3;
 
 	@Value("${custom.ai.rag-llm-answer-prompt}")
 	private String ragPrompt;
@@ -62,10 +64,10 @@ public class PostSearchService {
 					&& postfavoriteRepository.existsByMemberIdAndPostId(memberId, post.getId());
 
 				String thumbnail = post.getImages().stream()
-						.filter(PostImage::getIsPrimary)
-						.findFirst()
-						.map(img -> s3.generatePresignedUrl(img.getImageUrl()))
-						.orElse(null);
+					.filter(PostImage::getIsPrimary)
+					.findFirst()
+					.map(img -> s3.generatePresignedUrl(img.getImageUrl()))
+					.orElse(null);
 
 				return PostListResBody.of(post, isFavorite, thumbnail);
 			})
@@ -180,5 +182,4 @@ public class PostSearchService {
 			.call()
 			.content();
 	}
-
 }
