@@ -90,7 +90,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: backend/src/generated
-          key: jooq-${{ hashFiles('backend/src/main/resources/db/migration/*.sql', 'backend/build.gradle.kts') }}
+          key: jooq-${{ hashFiles('backend/src/main/resources/sql/*.sql', 'backend/build.gradle.kts') }}
           restore-keys: |
             jooq-
 
@@ -115,6 +115,21 @@ jobs:
           done
           echo "✅ MariaDB is ready"
 
+      - name: Load database schema (if cache miss)
+        if: steps.cache-jooq.outputs.cache-hit != 'true'
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          echo "=== Loading database schema ==="
+          
+          if [ -f "src/main/resources/sql/init_tables.sql" ]; then
+            docker exec -i chwimeet-mariadb mariadb -uroot -p${DB_PASSWORD} chwimeet < src/main/resources/sql/init_tables.sql
+            echo "✅ Schema loaded successfully"
+          else
+            echo "❌ init_tables.sql not found"
+            exit 1
+          fi
+
       - name: Generate JOOQ sources (if cache miss)
         if: steps.cache-jooq.outputs.cache-hit != 'true'
         env:
@@ -126,8 +141,6 @@ jobs:
           echo "Checking environment variables (masked):"
           echo "SPRING__DATASOURCE__USERNAME=$SPRING__DATASOURCE__USERNAME"
           echo "SPRING__DATASOURCE__URL=$SPRING__DATASOURCE__URL"
-          echo ""
-          echo "⚙️  JOOQ plugin will automatically run Flyway migration"
           
           # Run with stacktrace for better error messages
           ./gradlew generateJooqClasses --no-daemon --stacktrace
