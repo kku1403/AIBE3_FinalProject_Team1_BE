@@ -104,8 +104,13 @@ public class PostSearchService {
 				보증금: %d원
 				거래 방식: 수령=%s / 반납=%s
 				지역들: %s
-				""".formatted(p.getId(), p.getTitle(), p.getCategory().getName(), p.getFee(), p.getDeposit(),
-				p.getReceiveMethod().getDescription(), p.getReturnMethod().getDescription(),
+				""".formatted(p.getId(),
+				p.getTitle(),
+				p.getCategory().getName(),
+				p.getFee(),
+				p.getDeposit(),
+				p.getReceiveMethod().getDescription(),
+				p.getReturnMethod().getDescription(),
 				p.getPostRegions().stream().map(r -> r.getRegion().getName()).toList()))
 			.collect(Collectors.joining("\n\n"));
 
@@ -144,8 +149,13 @@ public class PostSearchService {
 				수령 방식: %s
 				반납 방식: %s
 				지역들: %s
-				""".formatted(p.title(), categoryName(p.categoryId()), p.fee(), p.deposit(),
-				p.receiveMethod().getDescription(), p.returnMethod().getDescription(), regionNames(p.regionIds())))
+				""".formatted(p.title(),
+				categoryName(p.categoryId()),
+				p.fee(),
+				p.deposit(),
+				p.receiveMethod().getDescription(),
+				p.returnMethod().getDescription(),
+				regionNames(p.regionIds())))
 			.collect(Collectors.joining("\n\n"));
 
 		String prompt = answerPrompt.formatted(query, context);
