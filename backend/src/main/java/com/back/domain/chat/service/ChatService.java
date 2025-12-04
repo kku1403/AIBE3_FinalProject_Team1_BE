@@ -15,7 +15,6 @@ import com.back.global.exception.ServiceException;
 import com.back.global.s3.S3Uploader;
 import com.back.standard.util.page.PagePayload;
 import com.back.standard.util.page.PageUt;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +22,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Optional;
 
@@ -97,9 +98,11 @@ public class ChatService {
                 0
         );
 
-        chatNotificationPublisher.publish(
-                hostId,
-                new ChatNotiDto(NOTI_NEW_ROOM, newRoom)
+        executeAfterCommit(() ->
+                chatNotificationPublisher.publish(
+                        hostId,
+                        new ChatNotiDto(NOTI_NEW_ROOM, newRoom)
+                )
         );
     }
 
@@ -167,7 +170,9 @@ public class ChatService {
 
         chatRoomQueryRepository.updateLastMessage(chatRoomId, chatMessage.getContent(), chatMessage.getCreatedAt());
 
-        publishMessageAndNotification(chatRoomId, memberId, prepareInfo.otherMemberId(), chatMessage);
+        executeAfterCommit(() ->
+                publishMessageAndNotification(chatRoomId, memberId, prepareInfo.otherMemberId(), chatMessage)
+        );
     }
 
     private void publishMessageAndNotification(Long chatRoomId, Long senderId, Long receiverId, ChatMessage chatMessage) {
@@ -195,7 +200,9 @@ public class ChatService {
 
         chatMember.updateLastReadMessageId(lastMessageId);
 
-        redisTemplate.delete(unreadKey(memberId, chatRoomId));
+        executeAfterCommit(() ->
+                redisTemplate.delete(unreadKey(memberId, chatRoomId))
+        );
     }
 
     private Integer getUnreadCount(String key) {
@@ -211,5 +218,16 @@ public class ChatService {
 
     private String unreadKey(Long memberId, Long chatRoomId) {
         return "unread:" + memberId + ":" + chatRoomId;
+    }
+
+    private void executeAfterCommit(Runnable action) {
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        action.run();
+                    }
+                }
+        );
     }
 }
