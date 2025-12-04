@@ -1,5 +1,6 @@
 package com.back.domain.review.controller;
 
+import com.back.config.TestConfig;
 import com.back.domain.category.entity.Category;
 import com.back.domain.category.repository.CategoryRepository;
 import com.back.domain.member.common.MemberRole;
@@ -20,10 +21,15 @@ import com.back.domain.review.repository.ReviewRepository;
 import com.back.global.security.SecurityUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
+import org.mockito.Mockito;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -46,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Transactional
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Import(TestConfig.class)
 class ReviewControllerTest {
 
     @Autowired
@@ -72,8 +79,20 @@ class ReviewControllerTest {
     @MockitoBean
     private NotificationService notificationService;  // 알림 서비스 모킹 (Notification type 에러 우회)
 
-    @MockitoBean
-    private ChatClient chatClient;  // AI 요약 서비스 모킹
+    @TestConfiguration
+    static class MockConfig {
+        @Bean
+        @Primary
+        public ChatClient.Builder mockChatClientBuilder() {
+            ChatClient.Builder builder = Mockito.mock(ChatClient.Builder.class);
+            ChatClient chatClient = Mockito.mock(ChatClient.class);
+
+            // 기본 동작 설정
+            Mockito.when(builder.build()).thenReturn(chatClient);
+
+            return builder;
+        }
+    }
 
     private Member postAuthor;
     private Member renter1;
