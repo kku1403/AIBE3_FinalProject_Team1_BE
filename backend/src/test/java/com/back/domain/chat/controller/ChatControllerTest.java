@@ -2,6 +2,8 @@ package com.back.domain.chat.controller;
 
 import com.back.config.TestConfig;
 import com.back.domain.chat.dto.CreateChatRoomReqBody;
+import com.back.domain.chat.entity.ChatMember;
+import com.back.domain.chat.repository.ChatMemberRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,8 +20,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,7 +40,11 @@ class ChatControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private ChatMemberRepository chatMemberRepository;
+
     // SQL 내부 정보 (user1 입장)
+    private static final Long MY_ID = 1L;
     private static final String MY_EMAIL = "user1@test.com";
     
     private static final int TOTAL_CHATROOM_COUNT = 3;
@@ -56,6 +62,8 @@ class ChatControllerTest {
     private static final Long OTHER_MEMBER_ID = 2L; // CHATROOM_ID_1의 채팅 상대
     private static final String OTHER_MEMBER_EMAIL = "user2@test.com";
     private static final String OTHER_MEMBER_NICKNAME = "kim";
+
+    private static final Long LAST_MESSAGE_ID = 3L;
 
     @Test
     @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
@@ -290,6 +298,49 @@ class ChatControllerTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.status").value(403))
                 .andExpect(jsonPath("$.msg").value("해당 채팅방에 접근할 수 없습니다."));
+    }
+
+    @Test
+    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @DisplayName("채팅방 내 메시지 목록 조회 성공")
+    void getChatRoomMessages_success() throws Exception {
+        // when
+        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}/messages", CHATROOM_ID_1)
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print());
+
+        // then
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("해당 채팅방 내 메세지 목록"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content.length()").value(3))
+                .andExpect(jsonPath("$.data.content[0].content").value("메시지 3"))
+                .andExpect(jsonPath("$.data.content[1].content").value("메시지 2"))
+                .andExpect(jsonPath("$.data.content[2].content").value("메시지 1"));
+
+    }
+
+    @Test
+    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @DisplayName("읽음 처리 성공 - lastMessageId 업데이트")
+    void markAsRead_success() throws Exception {
+        // when
+        ResultActions resultActions = mvc.perform(patch("/api/v1/chats/{chatRoomId}/read", CHATROOM_ID_1)
+                        .param("lastMessageId", String.valueOf(LAST_MESSAGE_ID)))
+                .andDo(print());
+
+        // then
+        resultActions
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.msg").value("읽음 처리 완료"));
+
+        ChatMember chatMember = chatMemberRepository.findByChatRoomIdAndMemberId(CHATROOM_ID_1, MY_ID).orElseThrow();
+
+        assertEquals(LAST_MESSAGE_ID, chatMember.getLastReadMessageId());
     }
 
 }
