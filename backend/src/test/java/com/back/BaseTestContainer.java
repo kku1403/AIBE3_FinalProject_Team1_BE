@@ -11,7 +11,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public abstract class BaseTestContainer {
 
-    private static final String TEST_SCHEMA = "chwimeet_test";
+    private static final String TEST_SCHEMA = "chwimeet";
 
     @Container
     static final MariaDBContainer<?> mariaDB = new MariaDBContainer<>("mariadb:11.7")
