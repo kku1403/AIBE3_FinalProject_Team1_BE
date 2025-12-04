@@ -43,34 +43,13 @@ class ChatControllerTest {
     @Autowired
     private ChatMemberRepository chatMemberRepository;
 
-    // SQL 내부 정보 (user1 입장)
-    private static final Long MY_ID = 1L;
-    private static final String MY_EMAIL = "user1@test.com";
-    
-    private static final int TOTAL_CHATROOM_COUNT = 3;
-
-    private static final Long CHATROOM_ID_1 = 1L; // user1 - user2 채팅방
-    private static final Long CHATROOM_ID_2 = 2L; // user1 - user3 채팅방
-    private static final Long CHATROOM_ID_NOT_FOUND = 99999L;
-
-    private static final Long POST_ID_EXISTING = 1L; // 이미 user1-user2 채팅방이 존재하는 게시글
-    private static final Long POST_ID_NEW = 4L; // 아직 user1과 채팅방이 없는 게시글
-    private static final Long POST_ID_MY = 5L;  // user1 본인이 작성한 게시글 (self-chat 예외용)
-
-    private static final String POST_TITLE = "캠핑 텐트 대여"; // CHATROOM_ID_1의 게시글 제목
-
-    private static final Long OTHER_MEMBER_ID = 2L; // CHATROOM_ID_1의 채팅 상대
-    private static final String OTHER_MEMBER_EMAIL = "user2@test.com";
-    private static final String OTHER_MEMBER_NICKNAME = "kim";
-
-    private static final Long LAST_MESSAGE_ID = 3L;
-
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("채팅방 생성 성공")
     void createChatRoom_success() throws Exception {
         // given
-        CreateChatRoomReqBody reqBody = new CreateChatRoomReqBody(POST_ID_NEW);
+        Long postId = 4L; // 아직 user1과 채팅방이 없는 게시글
+        CreateChatRoomReqBody reqBody = new CreateChatRoomReqBody(postId);
 
         // when
         ResultActions resultActions = mvc.perform(post("/api/v1/chats")
@@ -87,11 +66,12 @@ class ChatControllerTest {
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("이미 존재하는 채팅방일 때")
     void createChatRoom_alreadyExists() throws Exception {
         // given
-        CreateChatRoomReqBody reqBody = new CreateChatRoomReqBody(POST_ID_EXISTING);
+        Long postId = 1L; // 이미 user1-user2 채팅방이 존재하는 게시글
+        CreateChatRoomReqBody reqBody = new CreateChatRoomReqBody(postId);
 
         // when
         ResultActions resultActions = mvc.perform(post("/api/v1/chats")
@@ -111,7 +91,8 @@ class ChatControllerTest {
     @DisplayName("로그인 안 한 상태에서 채팅방 생성 시도")
     void createChatRoom_unauthorized() throws Exception {
         // given
-        CreateChatRoomReqBody reqBody = new CreateChatRoomReqBody(POST_ID_NEW);
+        Long postId = 4L;
+        CreateChatRoomReqBody reqBody = new CreateChatRoomReqBody(postId);
 
         // when
         ResultActions resultActions = mvc.perform(post("/api/v1/chats")
@@ -125,11 +106,12 @@ class ChatControllerTest {
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("본인과 채팅방 생성 시도 - 예외 발생")
     void createChatRoom_withSelf_shouldThrow() throws Exception {
         // given
-        CreateChatRoomReqBody reqBody = new CreateChatRoomReqBody(POST_ID_MY);
+        Long postId = 5L; // user1 본인이 작성한 게시글
+        CreateChatRoomReqBody reqBody = new CreateChatRoomReqBody(postId);
 
         // when
         ResultActions resultActions = mvc.perform(post("/api/v1/chats")
@@ -145,9 +127,12 @@ class ChatControllerTest {
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("채팅방 목록 조회 - 검색어 없음")
     void getMyChatRooms_withoutKeyword() throws Exception {
+        // given
+        int totalChatRooms = 3; // user1이 참여 중인 전체 채팅방 수
+
         // when
         ResultActions resultActions = mvc.perform(get("/api/v1/chats")
                         .param("page", "0")
@@ -160,18 +145,23 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.msg").value("내 채팅방 목록"))
                 .andExpect(jsonPath("$.data.content").isArray())
-                .andExpect(jsonPath("$.data.content.length()").value(TOTAL_CHATROOM_COUNT));
+                .andExpect(jsonPath("$.data.content.length()").value(totalChatRooms));
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("채팅방 목록 조회 - 게시글 제목으로 검색")
     void getMyChatRooms_searchByPostTitle_tent() throws Exception {
+        // given
+        String keyword = "텐트";
+        String expectedPostTitle = "캠핑 텐트 대여";
+        String expectedOtherNickname = "kim"; // user2
+
         // when
         ResultActions resultActions = mvc.perform(get("/api/v1/chats")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("keyword", "텐트"))
+                        .param("keyword", keyword))
                 .andDo(print());
 
         // then
@@ -181,20 +171,25 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.msg").value("내 채팅방 목록"))
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content.length()").value(1))
-                .andExpect(jsonPath("$.data.content[0].post.title").value(POST_TITLE))
-                .andExpect(jsonPath("$.data.content[0].otherMember.nickname").value(OTHER_MEMBER_NICKNAME))
+                .andExpect(jsonPath("$.data.content[0].post.title").value(expectedPostTitle))
+                .andExpect(jsonPath("$.data.content[0].otherMember.nickname").value(expectedOtherNickname))
                 .andExpect(jsonPath("$.data.page.totalElements").value(1));
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("채팅방 목록 조회 - 상대방 닉네임으로 검색")
     void getMyChatRooms_searchByMemberNickname() throws Exception {
+        // given
+        String keyword = "kim"; // user2의 닉네임
+        String expectedPostTitle = "캠핑 텐트 대여";
+        String expectedOtherNickname = "kim";
+
         // when
         ResultActions resultActions = mvc.perform(get("/api/v1/chats")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("keyword", "kim"))
+                        .param("keyword", keyword))
                 .andDo(print());
 
         // then
@@ -204,19 +199,23 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.msg").value("내 채팅방 목록"))
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content.length()").value(1))
-                .andExpect(jsonPath("$.data.content[0].post.title").value(POST_TITLE))
-                .andExpect(jsonPath("$.data.content[0].otherMember.nickname").value(OTHER_MEMBER_NICKNAME))
+                .andExpect(jsonPath("$.data.content[0].post.title").value(expectedPostTitle))
+                .andExpect(jsonPath("$.data.content[0].otherMember.nickname").value(expectedOtherNickname))
                 .andExpect(jsonPath("$.data.page.totalElements").value(1));
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("채팅방 목록 조회 - 페이징 테스트")
     void getMyChatRooms_pagination() throws Exception {
-        // 첫 페이지 (size=2)
+        // given
+        int totalChatRooms = 3;
+        int pageSize = 2;
+
+        // when - 첫 페이지
         ResultActions resultActions = mvc.perform(get("/api/v1/chats")
                         .param("page", "0")
-                        .param("size", "2"))
+                        .param("size", String.valueOf(pageSize)))
                 .andDo(print());
 
         // then
@@ -224,17 +223,17 @@ class ChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(2))
                 .andExpect(jsonPath("$.data.page.page").value(0))
-                .andExpect(jsonPath("$.data.page.size").value(2))
-                .andExpect(jsonPath("$.data.page.totalElements").value(TOTAL_CHATROOM_COUNT))
+                .andExpect(jsonPath("$.data.page.size").value(pageSize))
+                .andExpect(jsonPath("$.data.page.totalElements").value(totalChatRooms))
                 .andExpect(jsonPath("$.data.page.totalPages").value(2))
                 .andExpect(jsonPath("$.data.page.first").value(true))
                 .andExpect(jsonPath("$.data.page.last").value(false))
                 .andExpect(jsonPath("$.data.page.hasNext").value(true));
 
-        // 두 번째 페이지
+        // when - 두 번째 페이지
         ResultActions resultActions2 = mvc.perform(get("/api/v1/chats")
                         .param("page", "1")
-                        .param("size", "2"))
+                        .param("size", String.valueOf(pageSize)))
                 .andDo(print());
 
         // then
@@ -242,8 +241,8 @@ class ChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(1))
                 .andExpect(jsonPath("$.data.page.page").value(1))
-                .andExpect(jsonPath("$.data.page.size").value(2))
-                .andExpect(jsonPath("$.data.page.totalElements").value(TOTAL_CHATROOM_COUNT))
+                .andExpect(jsonPath("$.data.page.size").value(pageSize))
+                .andExpect(jsonPath("$.data.page.totalElements").value(totalChatRooms))
                 .andExpect(jsonPath("$.data.page.totalPages").value(2))
                 .andExpect(jsonPath("$.data.page.first").value(false))
                 .andExpect(jsonPath("$.data.page.last").value(true))
@@ -251,11 +250,17 @@ class ChatControllerTest {
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("채팅방 상세 정보 조회 성공")
     void getChatRoom_success() throws Exception {
+        // given
+        Long chatRoomId = 1L; // user1 <-> user2, "캠핑 텐트 대여"
+        Long expectedOtherMemberId = 2L; // user2
+        String expectedOtherNickname = "kim";
+        String expectedPostTitle = "캠핑 텐트 대여";
+
         // when
-        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}", CHATROOM_ID_1))
+        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}", chatRoomId))
                 .andDo(print());
 
         // then
@@ -263,19 +268,22 @@ class ChatControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.msg").value("채팅방 정보"))
-                .andExpect(jsonPath("$.data.id").value(CHATROOM_ID_1))
+                .andExpect(jsonPath("$.data.id").value(chatRoomId))
                 .andExpect(jsonPath("$.data.createdAt").exists())
-                .andExpect(jsonPath("$.data.post.title").value("캠핑 텐트 대여"))
-                .andExpect(jsonPath("$.data.otherMember.id").value(OTHER_MEMBER_ID))
-                .andExpect(jsonPath("$.data.otherMember.nickname").value(OTHER_MEMBER_NICKNAME));
+                .andExpect(jsonPath("$.data.post.title").value(expectedPostTitle))
+                .andExpect(jsonPath("$.data.otherMember.id").value(expectedOtherMemberId))
+                .andExpect(jsonPath("$.data.otherMember.nickname").value(expectedOtherNickname));
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("존재하지 않는 채팅방 조회 시도")
     void getChatRoom_notFound() throws Exception {
+        // given
+        Long nonExistentChatRoomId = 99999L;
+
         // when
-        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}", CHATROOM_ID_NOT_FOUND))
+        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}", nonExistentChatRoomId))
                 .andDo(print());
 
         // then
@@ -286,11 +294,14 @@ class ChatControllerTest {
     }
 
     @Test
-    @WithUserDetails(value = OTHER_MEMBER_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user2@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("권한 없는 채팅방 조회 시도")
     void getChatRoom_forbidden() throws Exception {
+        // given
+        Long chatRoomId = 2L; // user1 <-> user3 채팅방 (user2는 권한 없음)
+
         // when
-        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}", CHATROOM_ID_2))
+        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}", chatRoomId))
                 .andDo(print());
 
         // then
@@ -301,11 +312,14 @@ class ChatControllerTest {
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("채팅방 내 메시지 목록 조회 성공")
     void getChatRoomMessages_success() throws Exception {
+        // given
+        Long chatRoomId = 1L; // user1 <-> user2, 메시지 3개 존재
+
         // when
-        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}/messages", CHATROOM_ID_1)
+        ResultActions resultActions = mvc.perform(get("/api/v1/chats/{chatRoomId}/messages", chatRoomId)
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print());
@@ -320,16 +334,20 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.data.content[0].content").value("메시지 3"))
                 .andExpect(jsonPath("$.data.content[1].content").value("메시지 2"))
                 .andExpect(jsonPath("$.data.content[2].content").value("메시지 1"));
-
     }
 
     @Test
-    @WithUserDetails(value = MY_EMAIL, setupBefore = TestExecutionEvent.TEST_EXECUTION)
+    @WithUserDetails(value = "user1@test.com", setupBefore = TestExecutionEvent.TEST_EXECUTION)
     @DisplayName("읽음 처리 성공 - lastMessageId 업데이트")
     void markAsRead_success() throws Exception {
+        // given
+        Long chatRoomId = 1L; // user1 <-> user2
+        Long lastMessageId = 3L; // 읽음 처리할 마지막 메시지 ID
+        Long myId = 1L; // user1
+
         // when
-        ResultActions resultActions = mvc.perform(patch("/api/v1/chats/{chatRoomId}/read", CHATROOM_ID_1)
-                        .param("lastMessageId", String.valueOf(LAST_MESSAGE_ID)))
+        ResultActions resultActions = mvc.perform(patch("/api/v1/chats/{chatRoomId}/read", chatRoomId)
+                        .param("lastMessageId", String.valueOf(lastMessageId)))
                 .andDo(print());
 
         // then
@@ -338,9 +356,7 @@ class ChatControllerTest {
                 .andExpect(jsonPath("$.status").value(200))
                 .andExpect(jsonPath("$.msg").value("읽음 처리 완료"));
 
-        ChatMember chatMember = chatMemberRepository.findByChatRoomIdAndMemberId(CHATROOM_ID_1, MY_ID).orElseThrow();
-
-        assertEquals(LAST_MESSAGE_ID, chatMember.getLastReadMessageId());
+        ChatMember chatMember = chatMemberRepository.findByChatRoomIdAndMemberId(chatRoomId, myId).orElseThrow();
+        assertEquals(lastMessageId, chatMember.getLastReadMessageId());
     }
-
 }
