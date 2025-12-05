@@ -30,6 +30,7 @@ import com.back.config.TestConfig;
 	"/sql/post_regions.sql",
 	"/sql/post_options.sql"
 })
+@Sql(scripts = "/sql/clean-up.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class PostControllerTest {
 
 	@Autowired
