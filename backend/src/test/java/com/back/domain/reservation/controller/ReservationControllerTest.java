@@ -65,5 +65,6 @@ class ReservationControllerTest extends BaseContainerIntegrationTest {
                         jsonPath("$.data.createdAt").exists(),
                         jsonPath("$.data.modifiedAt").exists()
                 );
+
     }
 }
