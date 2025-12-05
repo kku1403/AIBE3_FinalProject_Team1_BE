@@ -1,7 +1,3 @@
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE region;
-SET FOREIGN_KEY_CHECKS = 1;
-
 -- 부모 지역 삽입
 INSERT INTO region (id, name, parent_id, created_at, modified_at)
 VALUES

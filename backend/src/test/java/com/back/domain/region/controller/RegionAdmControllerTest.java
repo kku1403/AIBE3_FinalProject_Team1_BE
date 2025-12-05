@@ -14,12 +14,11 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,8 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Import(TestConfig.class)
 @AutoConfigureMockMvc
-@Transactional
 @Sql("/sql/regions.sql")
+@Sql(scripts = "/sql/clean-up.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 class RegionAdmControllerTest {
 
     @Autowired
@@ -60,7 +59,7 @@ class RegionAdmControllerTest {
                 .andExpect(jsonPath("$.data.child").isEmpty());
 
         List<Region> all = regionRepository.findAll();
-        assertTrue(all.stream().anyMatch(r -> r.getName().equals("새 지역")));
+        assertThat(all).anyMatch(r -> r.getName().equals("새 지역"));
     }
 
     @Test
@@ -85,7 +84,7 @@ class RegionAdmControllerTest {
 
 
         Region updated = regionRepository.findById(2L).orElseThrow();
-        assertEquals("수정된 지역", updated.getName());
+        assertThat(updated.getName()).isEqualTo("수정된 지역");
     }
 
     @Test
@@ -99,6 +98,6 @@ class RegionAdmControllerTest {
                 .andExpect(jsonPath("$.msg").value("지역 삭제 성공"))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
-        assertFalse(regionRepository.existsById(3L));
+        assertThat(regionRepository.existsById(3L)).isFalse();
     }
 }
