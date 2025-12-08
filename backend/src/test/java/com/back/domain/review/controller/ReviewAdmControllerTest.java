@@ -3,7 +3,6 @@ package com.back.domain.review.controller;
 import com.back.config.TestConfig;
 import com.back.domain.category.entity.Category;
 import com.back.domain.category.repository.CategoryRepository;
-import com.back.domain.member.common.MemberRole;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.domain.notification.service.NotificationService;
@@ -80,16 +79,16 @@ class ReviewAdmControllerTest {
     @BeforeEach
     void setUp() {
         // 관리자 생성
-        admin = createMember("admin@test.com", "관리자", null);
+        admin = createMember("admin@test.com", "관리자");
 
         // 일반 사용자 생성
-        regularUser = createMember("user@test.com", "일반회원", null);
+        regularUser = createMember("user@test.com", "일반회원");
 
         // 게시글 작성자 생성
-        postAuthor = createMember("author@test.com", "작성자", null);
+        postAuthor = createMember("author@test.com", "작성자");
 
         // 대여자 생성
-        renter = createMember("renter@test.com", "대여자", null);
+        renter = createMember("renter@test.com", "대여자");
 
         // 카테고리 및 게시글 생성
         category = createCategory("테스트");
@@ -311,11 +310,11 @@ class ReviewAdmControllerTest {
     @DisplayName("여러 리뷰 제재 - 관리자 권한")
     void banMultipleReviews_Admin() throws Exception {
         // given - 추가 리뷰 생성
-        Member renter2 = createMember("renter2@test.com", "대여자2", null);
+        Member renter2 = createMember("renter2@test.com", "대여자2");
         Reservation reservation2 = createReservation(post, renter2, 10, 8);
         Review review2 = createReview(reservation2, 4, 4, 4, "괜찮았습니다");
 
-        Member renter3 = createMember("renter3@test.com", "대여자3", null);
+        Member renter3 = createMember("renter3@test.com", "대여자3");
         Reservation reservation3 = createReservation(post, renter3, 15, 13);
         Review review3 = createReview(reservation3, 3, 3, 3, "보통이었습니다");
 
@@ -341,8 +340,8 @@ class ReviewAdmControllerTest {
 
     // ========== Helper Methods ==========
 
-    private Member createMember(String username, String nickname, String profileImgUrl) {
-        Member member = new Member(username, "1234", nickname, MemberRole.USER, profileImgUrl);
+    private Member createMember(String username, String nickname) {
+        Member member = Member.createForJoin(username, "1234", nickname);
         return memberRepository.save(member);
     }
 

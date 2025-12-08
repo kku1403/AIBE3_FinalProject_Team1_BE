@@ -6,9 +6,7 @@ import com.back.domain.member.service.AuthTokenService;
 import com.back.domain.member.service.EmailService;
 import com.back.domain.member.service.MemberService;
 import com.back.domain.member.service.RefreshTokenStore;
-import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
-import com.back.global.s3.S3Uploader;
 import com.back.global.security.SecurityUser;
 import com.back.global.web.CookieHelper;
 import jakarta.validation.Valid;
@@ -30,45 +28,31 @@ public class MemberController implements MemberApi{
     private final RefreshTokenStore refreshTokenStore;
     private final CookieHelper cookieHelper;
     private final EmailService emailService;
-    private final S3Uploader s3Uploader;
 
     @PostMapping
     public ResponseEntity<RsData<MemberDto>> join(
             @Valid @RequestBody MemberJoinReqBody reqBody
     ) {
         Member member =memberService.join(reqBody);
-        String presignedUrl = s3Uploader.generatePresignedUrl(member.getProfileImgUrl());
-        return ResponseEntity.status(201).body(new RsData<>(HttpStatus.CREATED, "회원가입 되었습니다.", new MemberDto(member, presignedUrl)));
+        MemberDto memberDto = memberService.toMemberDto(member);
+        return ResponseEntity.status(201).body(new RsData<>(HttpStatus.CREATED, "회원가입 되었습니다.", memberDto));
     }
 
     @PostMapping("/login")
     public ResponseEntity<RsData<MemberDto>> login(
             @Valid @RequestBody MemberLoginReqBody reqBody
     ) {
-        Member member = memberService.findByEmail(reqBody.email()).orElseThrow(
-                () -> new ServiceException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다.")
-        );
-        memberService.checkPassword(member, reqBody.password());
+        Member member = memberService.authenticateAndGetMember(reqBody.email(), reqBody.password());
 
-        String accessToken = authTokenService.genAccessToken(member);
-        String refreshToken = authTokenService.issueRefresh(member);
+        issueTokensAndSetCookies(member);
 
-        cookieHelper.setCookie("accessToken", accessToken);
-        cookieHelper.setCookie("refreshToken", refreshToken);
-
-        String presignedUrl = s3Uploader.generatePresignedUrl(member.getProfileImgUrl());
-        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "로그인 되었습니다.", new MemberDto(member, presignedUrl)));
+        MemberDto memberDto = memberService.toMemberDto(member);
+        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "로그인 되었습니다.", memberDto));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<RsData<Void>> logout() {
-        String refreshPlain = cookieHelper.getCookieValue("refreshToken", null);
-        if (refreshPlain != null && !refreshPlain.isBlank()) {
-            refreshTokenStore.revoke(refreshPlain);
-        }
-
-        cookieHelper.deleteCookie("accessToken");
-        cookieHelper.deleteCookie("refreshToken");
+        revokeRefreshTokenAndClearCookies();
 
         return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "로그아웃 되었습니다."));
     }
@@ -79,8 +63,8 @@ public class MemberController implements MemberApi{
     ) {
         Member member = memberService.getById(securityUser.getId());
 
-        String presignedUrl = s3Uploader.generatePresignedUrl(member.getProfileImgUrl());
-        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "현재 회원 정보입니다.", new MemberDto(member, presignedUrl)));
+        MemberDto memberDto = memberService.toMemberDto(member);
+        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "현재 회원 정보입니다.", memberDto));
     }
 
     @PatchMapping("/me")
@@ -91,8 +75,8 @@ public class MemberController implements MemberApi{
     ) {
         Member member = memberService.updateMember(securityUser.getId(), reqBody, profileImage);
 
-        String presignedUrl = s3Uploader.generatePresignedUrl(member.getProfileImgUrl());
-        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "회원 정보가 수정되었습니다.", new MemberDto(member, presignedUrl)));
+        MemberDto memberDto = memberService.toMemberDto(member);
+        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "회원 정보가 수정되었습니다.", memberDto));
     }
 
     @GetMapping("/{id}")
@@ -100,8 +84,8 @@ public class MemberController implements MemberApi{
             @PathVariable Long id
     ) {
         Member member = memberService.getById(id);
-        String presignedUrl = s3Uploader.generatePresignedUrl(member.getProfileImgUrl());
-        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "회원 정보입니다.", new SimpleMemberDto(member, presignedUrl)));
+        SimpleMemberDto memberDto = memberService.toSimpleMemberDto(member);
+        return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "회원 정보입니다.", memberDto));
     }
 
     @GetMapping("/check-nickname")
@@ -126,5 +110,24 @@ public class MemberController implements MemberApi{
     ) {
         emailService.verifyCode(reqBody.email(), reqBody.code());
         return ResponseEntity.ok(new RsData<>(HttpStatus.OK, "이메일 인증이 완료되었습니다.", new MemberVerifyResBody(true)));
+    }
+
+    private void issueTokensAndSetCookies(Member member) {
+        String accessToken = authTokenService.genAccessToken(member);
+        String refreshToken = authTokenService.issueRefresh(member);
+
+        cookieHelper.setCookie("accessToken", accessToken);
+        cookieHelper.setCookie("refreshToken", refreshToken);
+    }
+
+    private void revokeRefreshTokenAndClearCookies() {
+        String refreshToken = cookieHelper.getCookieValue("refreshToken", null);
+
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            refreshTokenStore.revoke(refreshToken);
+        }
+
+        cookieHelper.deleteCookie("accessToken");
+        cookieHelper.deleteCookie("refreshToken");
     }
 }

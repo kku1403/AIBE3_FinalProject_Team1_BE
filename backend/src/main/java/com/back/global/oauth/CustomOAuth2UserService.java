@@ -1,6 +1,5 @@
 package com.back.global.oauth;
 
-import com.back.domain.member.common.MemberRole;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +27,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
         Member member = memberRepository.findByEmail(userInfo.getEmail()).orElse(null);
         if (member == null) {
-            this.joinMember(userInfo.getEmail(), userInfo.getNickname());
+            this.joinMember(userInfo.getEmail(), userInfo.getNickname(), userInfo.getProfileImgUrl());
         }
         return oAuth2User;
     }
@@ -41,8 +40,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     }
 
 
-    private void joinMember(String username, String nickname) {
-        String newPassword = passwordEncoder.encode("");
-        memberRepository.save(new Member(username, newPassword, nickname, MemberRole.USER));
+    private void joinMember(String username, String nickname, String profileImgUrl) {
+        memberRepository.save(Member.createForOAuth(username, nickname, profileImgUrl));
     }
 }

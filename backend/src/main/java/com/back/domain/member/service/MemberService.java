@@ -1,9 +1,6 @@
 package com.back.domain.member.service;
 
-import com.back.domain.member.common.MemberRole;
-import com.back.domain.member.dto.MemberBannedResBody;
-import com.back.domain.member.dto.MemberJoinReqBody;
-import com.back.domain.member.dto.MemberUpdateReqBody;
+import com.back.domain.member.dto.*;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.global.exception.ServiceException;
@@ -38,23 +35,45 @@ public class MemberService {
         return memberRepository.findByEmail(email);
     }
 
-    public Member join(MemberJoinReqBody reqBody) {
-        return join(reqBody, MemberRole.USER);
+    public MemberDto toMemberDto(Member member) {
+        String presignedUrl = s3.generatePresignedUrl(member.getProfileImgUrl());
+        return new MemberDto(member, presignedUrl);
+    }
+    public SimpleMemberDto toSimpleMemberDto(Member member) {
+        String presignedUrl = s3.generatePresignedUrl(member.getProfileImgUrl());
+        return new SimpleMemberDto(member, presignedUrl);
     }
 
-    public Member join(MemberJoinReqBody reqBody, MemberRole role) {
+    public Member authenticateAndGetMember(String email, String password) {
+        Member member = findByEmail(email)
+                .orElseThrow(() -> new ServiceException(HttpStatus.UNAUTHORIZED, "사용자를 찾을 수 없습니다."));
+
+        checkPassword(member, password);
+        return member;
+    }
+
+    public Member join(MemberJoinReqBody reqBody) {
         if (memberRepository.existsByEmail(reqBody.email())) {
             throw new ServiceException(HttpStatus.BAD_REQUEST, "이미 가입된 이메일입니다.");
         }
 
         String password = passwordEncoder.encode(reqBody.password());
-        Member member = new Member(reqBody.email(), password, reqBody.nickname(), role);
+        Member member = Member.createForJoin(reqBody.email(), password, reqBody.nickname());
+        return memberRepository.save(member);
+    }
+    public Member joinForAdmin(MemberJoinReqBody reqBody) {
+        if (memberRepository.existsByEmail(reqBody.email())) {
+            throw new ServiceException(HttpStatus.BAD_REQUEST, "이미 가입된 이메일입니다.");
+        }
+
+        String password = passwordEncoder.encode(reqBody.password());
+        Member member = Member.createForAdmin(reqBody.email(), password, reqBody.nickname());
         return memberRepository.save(member);
     }
 
     public void checkPassword(Member member, String password) {
         if (!passwordEncoder.matches(password, member.getPassword())) {
-            throw new ServiceException(HttpStatus.NOT_FOUND, "비밀번호가 올바르지 않습니다.");
+            throw new ServiceException(HttpStatus.UNAUTHORIZED, "비밀번호가 올바르지 않습니다.");
         }
     }
 

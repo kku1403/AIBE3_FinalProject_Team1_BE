@@ -38,13 +38,13 @@ public class ProdInitData {
                 "root123414",
                 "관리닉네임"
                 );
-        Member admin = memberService.join(reqBody1, MemberRole.ADMIN);
+        Member admin = memberService.joinForAdmin(reqBody1);
 
         MemberJoinReqBody reqBody2 = new MemberJoinReqBody(
                 "0@0.0",
                 "root123414",
                 "일반닉네임"
         );
-        Member member = memberService.join(reqBody2, MemberRole.USER);
+        Member member = memberService.join(reqBody2);
     }
 }

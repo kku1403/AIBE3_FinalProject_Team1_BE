@@ -44,8 +44,6 @@ public class SecurityConfig {
             "/",
             "/mcp/**",
             "/favicon.ico",
-            "/api/v1/members",
-            "/api/v1/members/**",           // 회원 인증 (로그인, 회원가입, OAuth2 등)
             "/swagger-ui/**",         // Swagger UI
             "/swagger-ui.html",       // Swagger UI HTML
             "/v3/api-docs", "/v3/api-docs/**", // Swagger OpenApi JSON 문서
@@ -68,6 +66,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,"/api/v1/posts", "/api/v1/posts/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/v1/categories/**").permitAll()
                         .requestMatchers(HttpMethod.GET,"/api/v1/regions/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/members", "/api/v1/members/login", "/api/v1/members/send-code", "/api/v1/members/verify-code").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/members/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/members/check-nickname", "/api/v1/members/{id}", "/api/v1/members/{memberId}/reviews", "/api/v1/members/{memberId}/reviews/summary").permitAll()
                         .requestMatchers("/api/v1/adm/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

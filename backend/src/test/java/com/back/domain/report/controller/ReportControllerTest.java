@@ -1,7 +1,6 @@
 package com.back.domain.report.controller;
 
 import com.back.BaseContainerIntegrationTest;
-import com.back.domain.member.common.MemberRole;
 import com.back.domain.member.entity.Member;
 import com.back.domain.report.common.ReportType;
 import com.back.domain.report.dto.ReportReqBody;
@@ -194,7 +193,7 @@ class ReportControllerTest extends BaseContainerIntegrationTest {
     void createReport_DuplicateReport() throws Exception {
         // given
         Member existingMember = em.find(Member.class, 1L);
-        Member targetMember = new Member("member@email.com", "test1234", "test-member", MemberRole.USER);
+        Member targetMember = Member.createForJoin("member@email.com", "test1234", "test-member");
         em.persist(targetMember);
 
         Report report = Report.createMemberType(targetMember.getId(), "이미 신고됨", existingMember);

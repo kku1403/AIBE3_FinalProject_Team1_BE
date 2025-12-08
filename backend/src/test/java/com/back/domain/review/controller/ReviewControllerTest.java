@@ -3,7 +3,6 @@ package com.back.domain.review.controller;
 import com.back.config.TestConfig;
 import com.back.domain.category.entity.Category;
 import com.back.domain.category.repository.CategoryRepository;
-import com.back.domain.member.common.MemberRole;
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.repository.MemberRepository;
 import com.back.domain.notification.service.NotificationService;
@@ -114,9 +113,9 @@ class ReviewControllerTest {
 
         // 테스트 데이터 생성
         category = createCategory("캠핑");
-        postAuthor = createMember("owner@test.com", "장비주인", "https://example.com/owner.jpg");
-        renter1 = createMember("renter1@test.com", "대여자1", "https://example.com/renter1.jpg");
-        renter2 = createMember("renter2@test.com", "대여자2", "https://example.com/renter2.jpg");
+        postAuthor = createMember("owner@test.com", "장비주인");
+        renter1 = createMember("renter1@test.com", "대여자1");
+        renter2 = createMember("renter2@test.com", "대여자2");
 
         campingPost = createPost(postAuthor, "캠핑 텐트 대여", "4인용 텐트입니다", category, 30000, 50000);
         fishingPost = createPost(postAuthor, "낚시대 세트", "입문자용 낚시대", category, 15000, 30000);
@@ -312,7 +311,7 @@ class ReviewControllerTest {
     void getPostReviews_PagingTest() throws Exception {
         // given - 35개 리뷰 생성
         for (int i = 0; i < 35; i++) {
-            Member tempRenter = createMember("temp" + i + "@test.com", "임시" + i, null);
+            Member tempRenter = createMember("temp" + i + "@test.com", "임시" + i);
             Reservation tempReservation = createReservation(campingPost, tempRenter, 20 + i, 18 + i);
             createReview(tempReservation, 5, 5, 5, "리뷰 " + i);
         }
@@ -443,7 +442,7 @@ class ReviewControllerTest {
         createReview(reservation1, 5, 5, 5, "완벽합니다!");
         createReview(reservation2, 1, 2, 1, "별로였어요");
 
-        Member renter3 = createMember("renter3@test.com", "대여자3", null);
+        Member renter3 = createMember("renter3@test.com", "대여자3");
         Reservation reservation3 = createReservation(campingPost, renter3, 20, 18);
         createReview(reservation3, 3, 3, 3, "보통이에요");
 
@@ -521,7 +520,7 @@ class ReviewControllerTest {
 
         int successCount = 0;
         for (int i = 0; i < reviewableStatuses.length; i++) {
-            Member tempRenter = createMember("status" + i + "@test.com", "상태테스트" + i, null);
+            Member tempRenter = createMember("status" + i + "@test.com", "상태테스트" + i);
             Reservation tempReservation = new Reservation(
                     reviewableStatuses[i],
                     ReservationDeliveryMethod.DIRECT,
@@ -603,7 +602,7 @@ class ReviewControllerTest {
         String maxComment = "a".repeat(255);
         ReviewWriteReqBody reqBody = new ReviewWriteReqBody(5, 5, 5, maxComment);
 
-        Member renter3 = createMember("renter3@test.com", "대여자3", null);
+        Member renter3 = createMember("renter3@test.com", "대여자3");
         Reservation reservation3 = createReservation(campingPost, renter3, 30, 28);
         SecurityUser securityUser = createSecurityUser(renter3);
 
@@ -625,7 +624,7 @@ class ReviewControllerTest {
         String tooLongComment = "a".repeat(256);
         ReviewWriteReqBody reqBody = new ReviewWriteReqBody(5, 5, 5, tooLongComment);
 
-        Member renter = createMember("long@test.com", "길이테스트", null);
+        Member renter = createMember("long@test.com", "길이테스트");
         Reservation reservation = createReservation(campingPost, renter, 10, 8);
         SecurityUser securityUser = createSecurityUser(renter);
 
@@ -646,7 +645,7 @@ class ReviewControllerTest {
         String specialComment = "정말 좋았어요! 😊 별점 5개 ★★★★★ 100% 만족합니다~";
         ReviewWriteReqBody reqBody = new ReviewWriteReqBody(5, 5, 5, specialComment);
 
-        Member renter4 = createMember("renter4@test.com", "대여자4", null);
+        Member renter4 = createMember("renter4@test.com", "대여자4");
         Reservation reservation4 = createReservation(campingPost, renter4, 35, 33);
         SecurityUser securityUser = createSecurityUser(renter4);
 
@@ -665,7 +664,7 @@ class ReviewControllerTest {
     @DisplayName("리뷰 작성 - 다양한 배송 방법 조합 (DELIVERY)")
     void writeReview_WithDeliveryMethod() throws Exception {
         // given - 택배 배송 예약
-        Member renter5 = createMember("renter5@test.com", "대여자5", null);
+        Member renter5 = createMember("renter5@test.com", "대여자5");
         Reservation deliveryReservation = new Reservation(
                 ReservationStatus.REFUND_COMPLETED,
                 ReservationDeliveryMethod.DELIVERY,  // 택배 수령
@@ -700,7 +699,7 @@ class ReviewControllerTest {
     void getPostReviews_CustomPageSize() throws Exception {
         // given - 15개 리뷰 생성
         for (int i = 0; i < 15; i++) {
-            Member tempRenter = createMember("page" + i + "@test.com", "페이지" + i, null);
+            Member tempRenter = createMember("page" + i + "@test.com", "페이지" + i);
             Reservation tempReservation = createReservation(campingPost, tempRenter, 50 + i, 48 + i);
             createReview(tempReservation, 5, 5, 5, "페이지 테스트 " + i);
         }
@@ -741,7 +740,7 @@ class ReviewControllerTest {
         Category fishingCategory = createCategory("낚시");
         Post fishingPost2 = createPost(postAuthor, "고급 낚시대", "전문가용", fishingCategory, 50000, 100000);
 
-        Member renter6 = createMember("renter6@test.com", "대여자6", null);
+        Member renter6 = createMember("renter6@test.com", "대여자6");
         Reservation fishingReservation = createReservation(fishingPost2, renter6, 60, 58);
         createReview(fishingReservation, 5, 5, 5, "낚시대 좋아요");
 
@@ -793,8 +792,8 @@ class ReviewControllerTest {
     /**
      * Member 생성
      */
-    private Member createMember(String username, String nickname, String profileImgUrl) {
-        Member member = new Member(username, "1234", nickname, MemberRole.USER,profileImgUrl);
+    private Member createMember(String username, String nickname) {
+        Member member = Member.createForJoin(username, "1234", nickname);
         return memberRepository.save(member);
     }
 
