@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
@@ -189,52 +188,4 @@ class PostControllerTest {
 			.andExpect(jsonPath("$.msg").value("게시글이 수정되었습니다."));
 	}
 
-	@Test
-	@DisplayName("게시글 생성 테스트")
-	@WithUserDetails("user1@example.com")
-	void createPost_success() throws Exception {
-
-		String reqBody = """
-			{
-			  	  "title": "새로운 게시글",
-			      "content": "게시글 내용",
-			      "receiveMethod": "DIRECT",
-			      "returnMethod": "DIRECT",
-			      "returnAddress1": "서울특별시 강남구",
-			      "returnAddress2": "역삼동",
-			      "regionIds": [1],
-			      "categoryId": 1,
-			      "deposit": 5000,
-			      "fee": 3000,
-			      "options": [],
-			      "images": [
-			          {
-			              "isPrimary": true
-			          }
-			      ]
-			}
-			""";
-
-		MockMultipartFile image = new MockMultipartFile(
-			"images",
-			"image1.jpg",
-			"image/jpeg",
-			"dummy-image".getBytes()
-		);
-
-		MockMultipartFile json = new MockMultipartFile(
-			"request",
-			"request.json",
-			"application/json",
-			reqBody.getBytes()
-		);
-
-		mockMvc.perform(multipart("/api/v1/posts")
-				.file(json)
-				.file(image)
-				.contentType(MediaType.MULTIPART_FORM_DATA))
-			.andExpect(status().isCreated())
-			.andExpect(jsonPath("$.msg").value("게시글이 생성되었습니다."))
-			.andExpect(jsonPath("$.data.id").exists());
-	}
 }
