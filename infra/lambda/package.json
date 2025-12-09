@@ -4,7 +4,9 @@
   "description": "Lambda function for resizing profile images",
   "main": "index.js",
   "scripts": {
-    "build": "node create-zip.js"
+    "build": "npm run build:profile && npm run build:post",
+    "build:profile": "node create-zip.js profile",
+    "build:post": "node create-zip.js post"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.947.0",

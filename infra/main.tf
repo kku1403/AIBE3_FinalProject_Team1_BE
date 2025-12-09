@@ -749,16 +749,134 @@ resource "aws_lambda_permission" "allow_s3_profile" {
   source_account = data.aws_caller_identity.current.account_id
 }
 
-resource "aws_s3_bucket_notification" "profile_upload" {
+
+# ==================== 게시글 Lambda ====================
+resource "aws_lambda_function" "post_image_resizer" {
+  filename         = "lambda/post_resizer.zip"
+  function_name    = "${var.prefix}-post-resizer"
+  role             = aws_iam_role.lambda_post_resizer.arn
+  handler          = "post-image-resizer.handler"
+  runtime          = "nodejs20.x"
+  timeout          = 60
+  memory_size      = 1024
+  source_code_hash = filebase64sha256("lambda/post_resizer.zip")
+
+  environment {
+    variables = {
+      BUCKET_NAME        = aws_s3_bucket.app_bucket.id
+      SOURCE_PREFIX      = "posts/images/originals/"
+      DESTINATION_PREFIX = "posts/images/resized/"
+    }
+  }
+
+  tags = {
+    Name = "${var.prefix}-post-resizer"
+    Team = var.team_tag_value
+  }
+}
+
+# Lambda CloudWatch Logs - 게시글
+resource "aws_cloudwatch_log_group" "post_resizer" {
+  name              = "/aws/lambda/${var.prefix}-post-resizer"
+  retention_in_days = 7
+
+  tags = {
+    Name = "${var.prefix}-post-resizer-logs"
+    Team = var.team_tag_value
+  }
+}
+
+# Lambda IAM Role - 게시글
+resource "aws_iam_role" "lambda_post_resizer" {
+  name = "${var.prefix}-lambda-post-resizer-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+    }]
+  })
+
+  tags = {
+    Name = "${var.prefix}-lambda-post-resizer-role"
+    Team = var.team_tag_value
+  }
+}
+
+# Lambda 정책 - 게시글용
+resource "aws_iam_role_policy" "lambda_post_resizer_policy" {
+  name = "${var.prefix}-lambda-post-resizer-policy"
+  role = aws_iam_role.lambda_post_resizer.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "S3ReadOriginalsPost"
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject"
+        ]
+        Resource = "${aws_s3_bucket.app_bucket.arn}/posts/images/originals/*"
+      },
+      {
+        Sid    = "S3WriteResizedPost"
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject"
+        ]
+        Resource = "${aws_s3_bucket.app_bucket.arn}/posts/images/resized/*"
+      },
+      {
+        Sid    = "CloudWatchLogsPost"
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:${var.region}:*:log-group:/aws/lambda/${var.prefix}-post-resizer*"
+      }
+    ]
+  })
+}
+
+# S3 트리거 - 게시글
+resource "aws_lambda_permission" "allow_s3_post" {
+  statement_id   = "AllowS3InvokePost"
+  action         = "lambda:InvokeFunction"
+  function_name  = aws_lambda_function.post_image_resizer.function_name
+  principal      = "s3.amazonaws.com"
+  source_arn     = aws_s3_bucket.app_bucket.arn
+  source_account = data.aws_caller_identity.current.account_id
+}
+
+# ==================== S3 Notification - 통합 ====================
+resource "aws_s3_bucket_notification" "image_upload" {
   bucket = aws_s3_bucket.app_bucket.id
 
+  # 프로필 이미지
   lambda_function {
     lambda_function_arn = aws_lambda_function.profile_image_resizer.arn
     events              = ["s3:ObjectCreated:*"]
     filter_prefix       = "members/profile/originals/"
   }
 
-  depends_on = [aws_lambda_permission.allow_s3_profile]
+  # 게시글 이미지
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.post_image_resizer.arn
+    events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "posts/images/originals/"
+  }
+
+  depends_on = [
+    aws_lambda_permission.allow_s3_profile,
+    aws_lambda_permission.allow_s3_post
+  ]
 }
 
 # ==================== CloudFront ====================
@@ -847,9 +965,14 @@ output "s3_bucket_name" {
   description = "S3 bucket name"
 }
 
-output "lambda_function_name" {
+output "profile_lambda_function_name" {
   value       = aws_lambda_function.profile_image_resizer.function_name
-  description = "Lambda function name"
+  description = "Profile Lambda function name"
+}
+
+output "post_lambda_function_name" {
+  value       = aws_lambda_function.post_image_resizer.function_name
+  description = "Post Lambda function name"
 }
 
 output "public_ip" {
