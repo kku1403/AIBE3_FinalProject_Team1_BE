@@ -38,7 +38,7 @@ public class S3Uploader {
 		this.s3 = s3;
 		this.s3Presigner = s3Presigner;
 	}
-	
+
 	public void delete(String imageUrl) {
 		try {
 			String key = extractKey(imageUrl);
@@ -213,10 +213,11 @@ public class S3Uploader {
 		try {
 			String key = extractKey(originalUrl);
 
-			if (key.startsWith("members/profile/originals/")) {
+			if (!key.startsWith("posts/images/originals/")) {
 				log.warn("게시글 이미지가 아닙니다 : {}", key);
 				return generatePresignedUrl(originalUrl);
 			}
+
 			String filename = key.substring("posts/images/originals/".length());
 			String nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
 			String resizedKey = "posts/images/resized/" + sizeType + "/" + nameWithoutExt + ".webp";
