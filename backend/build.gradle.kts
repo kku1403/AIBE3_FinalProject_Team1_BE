@@ -52,6 +52,8 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
+    implementation("org.redisson:redisson-spring-boot-starter:3.41.0")
+
     // JOOQ
     implementation("org.jooq:jooq:${jooqVersion}")
     jooqCodegen("org.jooq:jooq-meta:${jooqVersion}")
