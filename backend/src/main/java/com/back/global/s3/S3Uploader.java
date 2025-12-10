@@ -1,11 +1,17 @@
 package com.back.global.s3;
 
-import com.back.global.exception.ServiceException;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import com.back.global.exception.ServiceException;
+
+import lombok.extern.slf4j.Slf4j;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -14,10 +20,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-
-import java.io.IOException;
-import java.time.Duration;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -61,10 +63,7 @@ public class S3Uploader {
 		try {
 			String key = extractKey(imageUrl);
 
-			DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder()
-				.bucket(bucket)
-				.key(key)
-				.build();
+			DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder().bucket(bucket).key(key).build();
 
 			s3.deleteObject(deleteObjectRequest);
 
@@ -79,15 +78,12 @@ public class S3Uploader {
 		}
 		String key = extractKey(imageUrl);
 
-		GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-				.bucket(bucket)
-				.key(key)
-				.build();
+		GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
 		GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-				.getObjectRequest(getObjectRequest)
-				.signatureDuration(Duration.ofMinutes(10))
-				.build();
+			.getObjectRequest(getObjectRequest)
+			.signatureDuration(Duration.ofMinutes(10))
+			.build();
 
 		PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(presignRequest);
 		return presigned.url().toString();
@@ -99,10 +95,10 @@ public class S3Uploader {
 			String key = S3FolderType.MEMBER_PROFILE_ORIGINAL.getPath() + filename;
 
 			PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-					.bucket(bucket)
-					.key(key)
-					.contentType(image.getContentType())
-					.build();
+				.bucket(bucket)
+				.key(key)
+				.contentType(image.getContentType())
+				.build();
 
 			s3.putObject(putObjectRequest, RequestBody.fromBytes(image.getBytes()));
 
@@ -176,9 +172,9 @@ public class S3Uploader {
 					String thumbnailKey = "members/profile/resized/thumbnail/" + nameWithoutExt + ".webp";
 
 					DeleteObjectRequest deleteResizedRequest = DeleteObjectRequest.builder()
-							.bucket(bucket)
-							.key(thumbnailKey)
-							.build();
+						.bucket(bucket)
+						.key(thumbnailKey)
+						.build();
 
 					s3.deleteObject(deleteResizedRequest);
 					log.info("프로필 리사이즈 이미지 삭제: {}", thumbnailKey);
@@ -190,6 +186,120 @@ public class S3Uploader {
 			}
 		} catch (Exception e) {
 			log.error("프로필 이미지 삭제 실패: {}", imageUrl, e);
+		}
+	}
+
+	public String uploadPostOriginal(MultipartFile image) {
+		try {
+			String originalFilename = image.getOriginalFilename();
+			String extension = originalFilename.substring(originalFilename.lastIndexOf('.'));
+
+			String filename = UUID.randomUUID() + extension;
+			String key = S3FolderType.POST_IMAGE_ORIGINAL.getPath() + filename;
+
+			PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+				.bucket(bucket)
+				.key(key)
+				.contentType(image.getContentType())
+				.build();
+
+			s3.putObject(putObjectRequest, RequestBody.fromBytes(image.getBytes()));
+
+			log.info("게시글 원본 업로드 완료: {}", key);
+
+			if (cloudfrontDomain != null && !cloudfrontDomain.isBlank()) {
+				return "https://" + cloudfrontDomain + "/" + key;
+			} else {
+				return "https://" + bucket + ".s3.ap-northeast-2.amazonaws.com/" + key;
+			}
+		} catch (IOException e) {
+			throw new ServiceException(HttpStatus.INTERNAL_SERVER_ERROR, "게시글 이미지 업로드 실패");
+		}
+	}
+
+	public String getPostThumbnailUrl(String originalUrl) {
+		return getPostResizedUrl(originalUrl, "thumbnail");
+	}
+
+	public String getPostDetailUrl(String originalUrl) {
+		return getPostResizedUrl(originalUrl, "detail");
+	}
+
+	public String getPostResizedUrl(String originalUrl, String sizeType) {
+		if (originalUrl == null || originalUrl.isBlank()) {
+			return null;
+		}
+
+		try {
+			String key = extractKey(originalUrl);
+
+			if (key.startsWith("members/profile/originals/")) {
+				log.warn("게시글 이미지가 아닙니다 : {}", key);
+				return generatePresignedUrl(originalUrl);
+			}
+			String filename = key.substring("posts/images/originals/".length());
+			String nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+			String resizedKey = "posts/images/resized/" + sizeType + "/" + nameWithoutExt + ".webp";
+
+			if (cloudfrontDomain != null && !cloudfrontDomain.isBlank()) {
+				return "https://" + cloudfrontDomain + "/" + resizedKey;
+			} else {
+				return "https://" + bucket + ".s3.ap-northeast-2.amazonaws.com/" + resizedKey;
+			}
+		} catch (Exception e) {
+			log.error("게시글 리사이즈 URL 생성 실패: {}", originalUrl, e);
+			return originalUrl;
+		}
+	}
+
+	public void deletePostImages(String imageUrl) {
+		if (imageUrl == null || imageUrl.isBlank()) {
+			return;
+		}
+
+		try {
+			String key = extractKey(imageUrl);
+
+			if (key.startsWith("posts/images/originals/") == false) {
+				log.warn("게시글 이미지가 아닙니다 : {}", key);
+				return;
+			}
+
+			delete(imageUrl);
+			log.info("게시글 원본 이미지 삭제: {}", key);
+
+			try {
+				String filename = key.substring("posts/images/originals/".length());
+				String nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+
+				String thumbnailKey = "posts/images/resized/thumbnail/" + nameWithoutExt + ".webp";
+				DeleteObjectRequest deleteThumbRequest = DeleteObjectRequest.builder()
+					.bucket(bucket)
+					.key(thumbnailKey)
+					.build();
+				s3.deleteObject(deleteThumbRequest);
+				log.info("게시글 썸네일 삭제: {}", thumbnailKey);
+			} catch (Exception e) {
+				log.warn("게시글 썸네일 삭제 실패: {}", e.getMessage());
+			}
+
+			try {
+				String filename = key.substring("posts/images/originals/".length());
+				String nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
+
+				String detailKey = "posts/images/resized/detail/" + nameWithoutExt + ".webp";
+				DeleteObjectRequest deleteDetailRequest = DeleteObjectRequest.builder()
+					.bucket(bucket)
+					.key(detailKey)
+					.build();
+				s3.deleteObject(deleteDetailRequest);
+				log.info("게시글 상세 이미지 삭제: {}", detailKey);
+			} catch (Exception e) {
+				log.warn("게시글 상세 이미지 삭제 실패: {}", e.getMessage());
+			}
+
+		} catch (Exception e) {
+			log.error("게시글 이미지 삭제 실패: {}", imageUrl, e);
 		}
 	}
 

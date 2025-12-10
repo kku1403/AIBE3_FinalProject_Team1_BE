@@ -47,13 +47,27 @@ class PostControllerTest {
 
 	@BeforeEach
 	void setup() {
-		when(s3Uploader.upload(any(), any()))
-			.thenReturn("https://bucket.s3.ap-northeast-2.amazonaws.com/post/test.jpg");
 
-		doNothing().when(s3Uploader).delete(anyString());
+		when(s3Uploader.uploadPostOriginal(any()))
+			.thenReturn("https://cloudfront.net/posts/originals/test.jpg");
+
+		when(s3Uploader.getPostThumbnailUrl(anyString()))
+			.thenReturn("https://cloudfront.net/posts/thumbnail/test.jpg");
+
+		when(s3Uploader.getPostDetailUrl(anyString()))
+			.thenReturn("https://cloudfront.net/posts/detail/test.jpg");
+
+		when(s3Uploader.getProfileThumbnailUrl(anyString()))
+			.thenReturn("https://cloudfront.net/members/profile/thumbnail/test.jpg");
 
 		when(s3Uploader.generatePresignedUrl(anyString()))
-			.thenReturn("https://bucket.fake-url.com/presigned");
+			.thenReturn("https://s3.example.com/test.jpg");
+
+		when(s3Uploader.generatePresignedUrl(null))
+			.thenReturn(null);
+
+		// 4) 삭제용
+		doNothing().when(s3Uploader).deletePostImages(anyString());
 	}
 
 	@Test

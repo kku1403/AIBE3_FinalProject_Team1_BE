@@ -87,7 +87,7 @@ public class PostSearchService {
 				.stream()
 				.filter(PostImage::getIsPrimary)
 				.findFirst()
-				.map(img -> s3.generatePresignedUrl(img.getImageUrl()))
+				.map(img -> s3.getPostThumbnailUrl(img.getImageUrl()))
 				.orElse(null);
 
 			return PostListResBody.of(post, isFavorite, thumbnail);

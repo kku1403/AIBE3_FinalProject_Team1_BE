@@ -144,7 +144,7 @@ public class PostService {
 
 		List<PostImageResBody> images = postImageService.toImageResBodies(post.getImages());
 
-		String authorProfileUrl = postImageService.toPresignedUrl(post.getAuthor().getProfileImgUrl());
+		String authorProfileUrl = postImageService.toProfileThumbnailUrl(post.getAuthor().getProfileImgUrl());
 
 		return PostDetailResBody.of(post, isFavorite, images, authorProfileUrl);
 	}
@@ -337,6 +337,6 @@ public class PostService {
 	@Transactional
 	public Post getByIdWithLock(Long id) {
 		return postRepository.findByIdWithLock(id)
-				.orElseThrow(() -> new ServiceException(HttpStatus.NOT_FOUND, "존재하지 않는 게시글입니다."));
+			.orElseThrow(() -> new ServiceException(HttpStatus.NOT_FOUND, "존재하지 않는 게시글입니다."));
 	}
 }
