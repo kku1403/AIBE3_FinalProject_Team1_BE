@@ -81,9 +81,6 @@
 
 # 🚀 기능 소개
 
-- CRUD나 회원같은 모든 프로젝트에 있는 기능보다는 특별한 기술스택을 활용한 기능 위주로 설명하는게 좋아보임
-- Ex) 쿼츠 기반 배치작업 처리, Redis 활용 캐싱, Spring AI 활용 기능들, 채팅 및 알림 등 실시간 통신
-
 <!-- 게시글 -->
 <details>
 <summary>📝 게시글</summary>
@@ -280,8 +277,6 @@
 
 # 🛠️ 기술 스택
 
-- 아이콘이나 이미지로 기술 스택 나열 후 특별히 선택한 이유가 명확하고 눈에 뛸만한 기술 스택에 대해 선택한 이유 적기
-
 <img src="https://img.shields.io/badge/Mariadb-003545?style=for-the-badge&logo=mariadb&logoColor=white" />
 
 프로젝트 초기에는 익숙한 관계형 데이터베이스인 MySQL을 사용했지만,
@@ -324,8 +319,6 @@ Quartz는 데이터베이스 기반 분산 락으로 여러 인스턴스 환경�
 
 
 # ⚙️ 기능 구현 방식
-
-- 어필할만한 기능 및 기술(RAG 기반 스마트 검색, Redis pub/sub 활용 채팅, AI 후기 캐싱, lambda 활용 이미지 리사이징, 쿼츠 기반 배치작업, 전략 패턴 기반 다형성 아키텍처)
 
 <details>
 <summary><strong>💬 Redis Pub/Sub 기반 실시간 채팅</strong></summary>
@@ -587,9 +580,6 @@ return "https://" + cloudfrontDomain + "/" + resizedKey;
 
 </details>
 
-
-<br>
-
 <details>
 <summary><strong>🔔 알림 타입 기준 Batch 로딩과 Mapper 기반 응답 조합을 적용한 알림 조회 설계 </strong></summary>
 
@@ -748,8 +738,6 @@ public record NotificationResBody<T extends NotificationData>(
 </details>
 
 # 🔥 트러블 슈팅
-
-- 적어놓은 트러블 슈팅들 중, 기술적으로 설명할 내용이 많거나, 어필할만한 내용을 구체적(문제 발생, 원인 파악, 원인, 해결 및 과정)으로 정리하면 좋을 것 같음.
 
 <details>
   
