@@ -1,4 +1,4 @@
-# <img width="50" height="40" src="https://github.com/user-attachments/assets/591a9945-2dc0-46a7-93af-de31a893fa2b" /> CHWIMEET
+# <img width="50" height="40" src="https://github.com/user-attachments/assets/e47f5c0e-d28a-4fcf-970f-2eaf4e166b1e" /> CHWIMEET
 
 <div align="center">
 <div align="center">
