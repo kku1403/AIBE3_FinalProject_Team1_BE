@@ -857,8 +857,6 @@ CacheControl: "max-age=31536000"  // 1년 캐싱
 <details>
 <summary><strong>🔔 알림 타입 기준 Batch 로딩과 Mapper 기반 응답 조합을 적용한 알림 조회 설계 </strong></summary>
 
-<br>
-
 ### 기능 개요
 
 알림 목록 조회 API는 **페이징·정렬 기준에 따라 하나의 목록으로 조회되지만**,  
@@ -1014,7 +1012,7 @@ public record NotificationResBody<T extends NotificationData>(
 <details>
 <summary><strong>✨ AI 활용 이미지 기반 게시글 내용 생성 </strong></summary>
 
-### AI 기반 게시글 자동 생성 기능 설계 및 구현
+### 기능 개요
 
 이미지와 간단한 사용자 입력만으로 **P2P 대여 게시글을 자동 생성**하는 기능을 구현했습니다.  
 이 기능은 이미지 최적화 → AI 프롬프트 구성 → 구조화된 JSON 응답 파싱의 흐름으로 동작합니다.
