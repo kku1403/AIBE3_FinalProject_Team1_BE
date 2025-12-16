@@ -507,15 +507,7 @@ public Message<?> preSend(Message<?> message, MessageChannel channel) {
 
 <br>
 
-#### 3. Redis Pub/Sub 기반 메시지 브로드캐스트
-
-채팅 메시지는 Redis Pub/Sub을 통해 서버 간에 브로드캐스트 됩니다.
-각 서버 인스턴스는 Redis Channel을 구독하고 있으며, 
-수신한 메시지를 해당 서버에 연결된 사용자에게 전달합니다.  
-
-<br>
-
-#### 4. 트랜잭션 정합성 보장
+#### 3. 트랜잭션 정합성 보장
 채팅 메시지는 데이터베이스 저장이 완료된 이후에만
 Redis로 Publish되도록 구성했습니다.  
 
@@ -523,7 +515,7 @@ Redis로 Publish되도록 구성했습니다.
 실시간 메시지가 전파되는 문제를 방지하고,   
 DB 상태와 실시간 메시지 전달 간의 정합성을 유지했습니다.
 
-```
+```java
 @Transactional
 public void saveMessage(Long chatRoomId, SendChatMessageDto body, Long memberId) {
 
@@ -549,7 +541,7 @@ private void executeAfterCommit(Runnable action) {
 ```
 <br>
 
-#### 5. 장애 상황 대응
+#### 4. 장애 상황 대응
 Redis Publish 과정에서 예외가 발생할 경우, 
 현재 서버에 연결된 사용자에게는 
 WebSocket을 통한 직접 전달 방식으로 메시지를 전송하는 fallback 구조를 적용했습니다.  
@@ -557,7 +549,7 @@ WebSocket을 통한 직접 전달 방식으로 메시지를 전송하는 fallbac
 이를 통해 Redis 장애 상황에서도  
 채팅 기능이 완전히 중단되지 않도록 설계했습니다.
 
-```
+```java
 public void publish(Long chatRoomId, ChatMessageDto dto) {
     try {
         // 정상 동작 시 Redis Publish 동작
